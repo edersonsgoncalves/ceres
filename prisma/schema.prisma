@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("user")
+  latitude  Float?
+  longitude Float?
+  city      String?
+  state     String?
+  createdAt DateTime @default(now())
+  invoices  Invoice[]
+  stores    UserStore[]
+}
+
+model Store {
+  id        String   @id @default(cuid())
+  cnpj      String?
+  name      String
+  address   String
+  city      String
+  state     String
+  latitude  Float?
+  longitude Float?
+  invoices  Invoice[]
+  users     UserStore[]
+}
+
+model UserStore {
+  id      String @id @default(cuid())
+  userId  String
+  storeId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storeId])
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  userId          String
+  storeId         String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store           Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  invoiceNumber   String
+  issueDate       DateTime
+  totalAmount     Decimal       @db.Decimal(10, 2)
+  totalItemsCount Int
+  rawImageUrl     String?
+  createdAt       DateTime      @default(now())
+  items           InvoiceItem[]
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  productName String
+  name        String?
+  barcode     String?
+  eanPrefix   String?
+  category    String?
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  quantity    Decimal @db.Decimal(8, 4)
+  unit        String
+  unitPrice   Decimal @db.Decimal(10, 4)
+  totalPrice  Decimal @db.Decimal(10, 2)
+
+  @@index([productName])
+  @@index([barcode])
+  @@index([eanPrefix])
+}
