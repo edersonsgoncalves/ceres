@@ -172,7 +172,7 @@ async function runPlaywrightScraper(url: string): Promise<PlaywrightScrapeResult
     }
 
     if (!contentReady) {
-      const finalUrl = await page.url().catch(() => "");
+      const finalUrl = page.url();
       const snippet = (await getBodyText(page)).replace(/\s+/g, " ").slice(0, 160);
       console.warn(
         `[SEFAZ] content not ready | url=${finalUrl} | initForm=${hadSubmitButton} | body="${snippet}"`
