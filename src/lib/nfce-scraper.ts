@@ -2,25 +2,6 @@ import { InvoiceData, InvoiceItem } from "@/types/invoice";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { existsSync } from "fs";
 
-export async function scrapeNfceFromUrl(url: string): Promise<InvoiceData> {
-  const accessKey = extractAccessKey(url);
-  if (!accessKey) throw new Error("Nao foi possivel extrair a chave de acesso do QR Code");
-
-  return scrapeFromSefaz(accessKey);
-}
-
-function extractAccessKey(url: string): string | null {
-  const match = url.match(/chaveAcesso=([\d]+)/i) || url.match(/p=([\d]{44})/i);
-  if (match) return match[1];
-
-  const numbers = url.replace(/\D/g, "");
-  if (numbers.length === 44) return numbers;
-
-  return null;
-}
-
-const CONSULTA_URL = "https://www.fazenda.rj.gov.br/nfce/consulta";
-
 const CHROMIUM_BIN_CANDIDATES = [
   "/usr/bin/chromium-browser",
   "/usr/bin/chromium",
@@ -33,7 +14,18 @@ const BROWSER_ARGS = [
   "--disable-setuid-sandbox",
   "--disable-dev-shm-usage",
   "--disable-gpu",
+  "--disable-blink-features=AutomationControlled",
+  "--window-size=1280,900",
 ];
+
+const NAV_OPTIONS = {
+  viewport: { width: 1280, height: 900 },
+  locale: "pt-BR",
+  timezoneId: "America/Sao_Paulo",
+  userAgent:
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  ignoreHTTPSErrors: true,
+};
 
 let browserPromise: Promise<Browser> | null = null;
 
@@ -91,88 +83,51 @@ async function getViewState(page: Page): Promise<string> {
   });
 }
 
-async function clickElementByName(page: Page, name: string): Promise<void> {
-  await page.evaluate((btnName) => {
-    const el = document.querySelector(`[name="${btnName}"]`) as HTMLElement | null;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-    ["mousemove", "mousedown", "mouseup"].forEach((type) => {
-      el.dispatchEvent(
-        new MouseEvent(type, {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-          clientX: x,
-          clientY: y,
-        })
-      );
-    });
-    el.click();
-  }, name);
+function contentReadyCheck(): boolean {
+  const t = document.body ? document.body.innerText : "";
+  if (t.includes("DOCUMENTO AUXILIAR")) return true;
+  if (t.includes("CNPJ") && t.length > 200) return true;
+  return window.location.href.includes("consultaQRCode.faces") && t.length > 100;
 }
 
-async function fillAccessKey(page: Page, accessKey: string): Promise<boolean> {
-  try {
-    await page.waitForSelector('input[id*=chave], input[name*=chave]', {
-      timeout: 15000,
-    });
-    await page.evaluate((key) => {
-      const el = document.querySelector(
-        'input[id*=chave], input[name*=chave]'
-      ) as HTMLInputElement | null;
-      if (!el) return;
-      el.value = key;
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-    }, accessKey);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function clickConsultar(page: Page): Promise<void> {
-  const selector =
-    "#consultarBtn, input[type=submit], button[type=submit], input[id*=consultar], button[id*=consultar]";
-  try {
-    await page.locator(selector).first().click({ force: true, timeout: 5000 });
-  } catch {
-    await page.evaluate(() => {
-      const el = document.querySelector(
-        "#consultarBtn, input[type=submit], button[type=submit], input[id*=consultar], button[id*=consultar]"
-      ) as HTMLElement | null;
-      if (el) el.click();
-    });
-  }
-}
-
-async function findDetailButtonName(page: Page): Promise<string> {
+async function tryClickDetailButton(page: Page): Promise<{ clicked: boolean }> {
   return page.evaluate(() => {
-    const exact = document.querySelector(
-      'input[alt="Visualizar NFC-e detalhada"], input[title="Visualizar NFC-e detalhada"], input.imgBtDetalhada'
-    ) as HTMLInputElement | null;
-    if (exact) return exact.name || "";
+    const candidates = Array.from(
+      document.querySelectorAll(
+        'input[type=image], input[type=submit], input[type=button], button, a[href], a[onclick]'
+      )
+    );
 
-    const buttons = Array.from(
-      document.querySelectorAll("input[type=image], input[type=button], button")
-    ).map((b) => {
-      const el = b as HTMLButtonElement | HTMLInputElement;
-      return {
-        name: (el.name as string) || "",
-        alt: (el as HTMLInputElement).alt || "",
-        title: (el as HTMLInputElement).title || "",
-        value: (el as HTMLInputElement).value || "",
-        text: (el.textContent || "").slice(0, 50),
-      };
-    });
+    for (const raw of candidates) {
+      const el = raw as HTMLInputElement | HTMLAnchorElement | HTMLButtonElement;
+      const alt = (el as HTMLInputElement).alt || "";
+      const title = (el as HTMLInputElement).title || "";
+      const value = (el as HTMLInputElement).value || "";
+      const text = el.textContent || "";
+      const name = (el as HTMLInputElement).name || "";
+      const hay = `${alt} ${title} ${value} ${text} ${name}`.toLowerCase();
 
-    for (const b of buttons) {
-      const val = `${b.alt} ${b.title} ${b.value} ${b.text}`.toLowerCase();
-      if (val.includes("detalhad") || val.includes("completa")) return b.name;
+      if (!/(detalhad|completa|\bvers[aã]o)/.test(hay)) continue;
+
+      const rect = el.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      ["mousemove", "mousedown", "mouseup"].forEach((type) =>
+        el.dispatchEvent(
+          new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: x,
+            clientY: y,
+          })
+        )
+      );
+      el.click();
+      return { clicked: true };
     }
-    return "";
+
+    return { clicked: false };
   });
 }
 
@@ -184,29 +139,44 @@ interface PlaywrightScrapeResult {
   error?: string;
 }
 
-async function runPlaywrightScraper(accessKey: string): Promise<PlaywrightScrapeResult> {
+async function runPlaywrightScraper(url: string): Promise<PlaywrightScrapeResult> {
   const browser = await getBrowser();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const page = await browser.newPage(NAV_OPTIONS);
 
   try {
-    await page.goto(CONSULTA_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+    let contentReady = false;
 
-    const filled = await fillAccessKey(page, accessKey);
-    if (!filled) {
-      throw new Error("Campo da chave de acesso nao encontrado na pagina");
+    for (let attempt = 0; attempt < 3 && !contentReady; attempt++) {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+      await sleep(2000);
+
+      const isInitPage = await page
+        .locator("#btSubmitQRCode")
+        .count()
+        .then((c) => c > 0)
+        .catch(() => false);
+
+      if (isInitPage) {
+        await page.evaluate(() => {
+          const el = document.getElementById("btSubmitQRCode") as HTMLInputElement | null;
+          if (el) el.click();
+        });
+      }
+
+      contentReady = await page
+        .waitForFunction(contentReadyCheck, { timeout: 15000 })
+        .then(() => true)
+        .catch(() => false);
     }
 
-    await sleep(300);
-    await clickConsultar(page);
+    if (!contentReady) {
+      return {
+        ok: false,
+        error: "A SEFAZ nao retornou o conteudo da NFC-e (possivel bloqueio anti-bot ou chave invalida)",
+      };
+    }
 
-    await page
-      .waitForFunction(
-        () => document.body && document.body.innerText.includes("DOCUMENTO AUXILIAR"),
-        { timeout: 20000 }
-      )
-      .catch(() => {});
-
-    await sleep(500);
+    await sleep(800);
 
     let text = await getBodyText(page);
     let html = await getBodyHtml(page);
@@ -214,27 +184,25 @@ async function runPlaywrightScraper(accessKey: string): Promise<PlaywrightScrape
     let detailFound = html.includes("fixo-prod-serv-descricao");
 
     for (let attempt = 0; attempt < 4 && !detailFound; attempt++) {
-      const btnName = await findDetailButtonName(page);
-      if (!btnName) {
+      const clicked = await tryClickDetailButton(page);
+      if (!clicked.clicked) {
         html = await getBodyHtml(page);
         if (html.includes("fixo-prod-serv-descricao")) {
           detailFound = true;
           break;
         }
-        await sleep(300);
+        await sleep(400);
         continue;
       }
 
-      await clickElementByName(page, btnName);
-
       await page
         .waitForFunction(
-          (prevState) => {
+          (prev) => {
             const h = document.body ? document.body.innerHTML : "";
             if (h.includes("fixo-prod-serv-descricao")) return true;
             const el = document.querySelector('input[name="javax.faces.ViewState"]');
             const vs = el ? (el as HTMLInputElement).value : "";
-            return vs !== "" && vs !== prevState;
+            return vs !== "" && vs !== prev;
           },
           prevViewState,
           { timeout: 15000 }
@@ -249,7 +217,7 @@ async function runPlaywrightScraper(accessKey: string): Promise<PlaywrightScrape
         break;
       }
 
-      await sleep(300);
+      await sleep(400);
     }
 
     if (!html) html = await getBodyHtml(page);
@@ -266,11 +234,11 @@ async function runPlaywrightScraper(accessKey: string): Promise<PlaywrightScrape
   }
 }
 
-async function scrapeFromSefaz(accessKey: string): Promise<InvoiceData> {
+async function scrapeFromSefaz(url: string): Promise<InvoiceData> {
   let lastError = "Falha ao consultar SEFAZ";
 
   for (let attempt = 1; attempt <= 3; attempt++) {
-    const result = await runPlaywrightScraper(accessKey);
+    const result = await runPlaywrightScraper(url);
     if (result.ok) {
       console.log(
         "[SEFAZ] Detail page:", result.detailFound,
@@ -283,10 +251,27 @@ async function scrapeFromSefaz(accessKey: string): Promise<InvoiceData> {
 
     lastError = result.error || lastError;
     console.warn(`[SEFAZ] attempt ${attempt} failed: ${lastError}`);
-    if (attempt < 3) await sleep(2000);
+    if (attempt < 3) await sleep(2500);
   }
 
   throw new Error(lastError);
+}
+
+export async function scrapeNfceFromUrl(url: string): Promise<InvoiceData> {
+  const accessKey = extractAccessKey(url);
+  if (!accessKey) throw new Error("Nao foi possivel extrair a chave de acesso do QR Code");
+
+  return scrapeFromSefaz(url);
+}
+
+function extractAccessKey(url: string): string | null {
+  const match = url.match(/chaveAcesso=([\d]+)/i) || url.match(/p=([\d]{44})/i);
+  if (match) return match[1];
+
+  const numbers = url.replace(/\D/g, "");
+  if (numbers.length === 44) return numbers;
+
+  return null;
 }
 
 export function parseSefazResponse(text: string, html: string): InvoiceData {
