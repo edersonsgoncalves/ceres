@@ -2,6 +2,23 @@ import { InvoiceData, InvoiceItem } from "@/types/invoice";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { existsSync } from "fs";
 
+export async function scrapeNfceFromUrl(url: string): Promise<InvoiceData> {
+  const accessKey = extractAccessKey(url);
+  if (!accessKey) throw new Error("Nao foi possivel extrair a chave de acesso do QR Code");
+
+  return scrapeFromSefaz(accessKey);
+}
+
+function extractAccessKey(url: string): string | null {
+  const match = url.match(/chaveAcesso=([\d]+)/i) || url.match(/p=([\d]{44})/i);
+  if (match) return match[1];
+
+  const numbers = url.replace(/\D/g, "");
+  if (numbers.length === 44) return numbers;
+
+  return null;
+}
+
 const CONSULTA_URL = "https://www.fazenda.rj.gov.br/nfce/consulta";
 
 const CHROMIUM_BIN_CANDIDATES = [
