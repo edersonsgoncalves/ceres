@@ -56,10 +56,11 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ steps.ssh-key.outputs.SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
+          script_stop: true
           script: |
             cd ~/ceres
             git checkout main
             git pull origin main
             docker compose up -d --build
-            docker compose exec app npx prisma db push
+            docker compose exec app npx prisma db push --accept-data-loss
             docker image prune -f
