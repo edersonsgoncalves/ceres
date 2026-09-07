@@ -1,56 +1,56 @@
 name: CI/CD Pipeline - Ceres
 
 on:
-push:
-branches:
-  - dev
-  - main
+  push:
+    branches:
+      - dev
+      - main
 
 jobs:
-validate:
-name: 🧪 CI - Validação & Build
-runs-on: ubuntu-latest
+  validate:
+    name: 🧪 CI - Validação & Build
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout do Código
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
 
-  - name: Configurar Node.js
-    uses: actions/setup-node@v4
-    with:
-      node-version: 20
-      cache: 'npm'
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
 
-  - name: Instalar Dependências
-    run: npm ci --legacy-peer-deps
+      - name: Instalar Dependências
+        run: npm ci --legacy-peer-deps
 
-  - name: Checagem de Tipos (TypeScript)
-    run: npx tsc --noEmit || true
+      - name: Checagem de Tipos (TypeScript)
+        run: npx tsc --noEmit
 
-  - name: Gerar Client do Prisma
-    run: npx prisma generate
+      - name: Gerar Client do Prisma
+        run: npx prisma generate
 
-  - name: Teste de Build do Next.js
-    run: npm run build
+      - name: Teste de Build do Next.js
+        run: npm run build
 
-deploy:
-name: 🚀 CD - Deploy Automático na VPS
-needs: validate
-if: github.ref == 'refs/heads/main'
-runs-on: ubuntu-latest
+  deploy:
+    name: 🚀 CD - Deploy Automático na VPS
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Executar Deploy via SSH na VPS
-    uses: appleboy/ssh-action@v1.0.3
-    with:
-      host: ${{ secrets.VPS_HOST }}
-      username: ${{ secrets.VPS_USER }}
-      key: ${{ secrets.VPS_SSH_KEY }}
-      port: ${{ secrets.VPS_PORT }}
-      script: |
-        cd ~/ceres
-        git checkout main
-        git pull origin main
-        docker compose up -d --build
-        docker compose exec app npx prisma db push
-        docker image prune -f
+    steps:
+      - name: Executar Deploy via SSH na VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            cd ~/ceres
+            git checkout main
+            git pull origin main
+            docker compose up -d --build
+            docker compose exec app npx prisma db push
+            docker image prune -f
