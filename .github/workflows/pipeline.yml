@@ -24,11 +24,11 @@ jobs:
       - name: Instalar Dependências
         run: npm ci --legacy-peer-deps
 
-      - name: Checagem de Tipos (TypeScript)
-        run: npx tsc --noEmit
-
       - name: Gerar Client do Prisma
         run: npx prisma generate
+
+      - name: Checagem de Tipos (TypeScript)
+        run: npx tsc --noEmit
 
       - name: Teste de Build do Next.js
         run: npm run build
