@@ -22,6 +22,9 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src ./src
 
+# Chromium headless usado pelo scraper de QR Code (nfce-scraper.ts)
+RUN apk add --no-cache chromium
+
 # Copia o prisma.config.ts e .env de forma limpa
 COPY --from=builder /app/prisma.config.t[s] ./
 COPY --from=builder /app/.en[v] ./
