@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: authError } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -44,9 +44,9 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.create({
       data: {
+        supabaseId: authData.user?.id,
         name,
         email,
-        password: "",
         city: city || null,
         state: state || null,
         latitude: latitude || null,

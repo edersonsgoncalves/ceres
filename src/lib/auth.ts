@@ -7,8 +7,33 @@ export async function getUser() {
 
   if (!user) return null;
 
-  const dbUser = await prisma.user.findUnique({
+  // Buscar por supabaseId primeiro
+  let dbUser = await prisma.user.findUnique({
+    where: { supabaseId: user.id },
+  });
+
+  if (dbUser) return dbUser;
+
+  // Fallback: buscar por email e vincular supabaseId
+  dbUser = await prisma.user.findUnique({
     where: { email: user.email! },
+  });
+
+  if (dbUser) {
+    dbUser = await prisma.user.update({
+      where: { id: dbUser.id },
+      data: { supabaseId: user.id },
+    });
+    return dbUser;
+  }
+
+  // Auto-provisionamento: criar usuário local
+  dbUser = await prisma.user.create({
+    data: {
+      supabaseId: user.id,
+      name: user.user_metadata?.name || user.email!.split("@")[0],
+      email: user.email!,
+    },
   });
 
   return dbUser;

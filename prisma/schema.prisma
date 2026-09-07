@@ -7,18 +7,18 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("user")
-  latitude  Float?
-  longitude Float?
-  city      String?
-  state     String?
-  createdAt DateTime @default(now())
-  invoices  Invoice[]
-  stores    UserStore[]
+  id          String   @id @default(cuid())
+  supabaseId  String?  @unique
+  name        String
+  email       String   @unique
+  role        String   @default("user")
+  latitude    Float?
+  longitude   Float?
+  city        String?
+  state       String?
+  createdAt   DateTime @default(now())
+  invoices    Invoice[]
+  stores      UserStore[]
 }
 
 model Store {
