@@ -45,7 +45,7 @@ function getBrowser(): Promise<Browser> {
     const executablePath = detectChromiumBinary();
     browserPromise = chromium
       .launch({
-        headless: true,
+        headless: process.env.SCRAPER_HEADED !== "true",
         args: BROWSER_ARGS,
         ...(executablePath ? { executablePath } : {}),
         timeout: 60000,
@@ -145,16 +145,18 @@ async function runPlaywrightScraper(url: string): Promise<PlaywrightScrapeResult
 
   try {
     let contentReady = false;
+    let hadSubmitButton = false;
 
     for (let attempt = 0; attempt < 3 && !contentReady; attempt++) {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
-      await sleep(2000);
+      await sleep(2500);
 
       const isInitPage = await page
         .locator("#btSubmitQRCode")
         .count()
         .then((c) => c > 0)
         .catch(() => false);
+      hadSubmitButton = hadSubmitButton || isInitPage;
 
       if (isInitPage) {
         await page.evaluate(() => {
@@ -164,12 +166,17 @@ async function runPlaywrightScraper(url: string): Promise<PlaywrightScrapeResult
       }
 
       contentReady = await page
-        .waitForFunction(contentReadyCheck, { timeout: 15000 })
+        .waitForFunction(contentReadyCheck, { timeout: 20000 })
         .then(() => true)
         .catch(() => false);
     }
 
     if (!contentReady) {
+      const finalUrl = page.url();
+      const snippet = (await getBodyText(page)).replace(/\s+/g, " ").slice(0, 160);
+      console.warn(
+        `[SEFAZ] content not ready | url=${finalUrl} | initForm=${hadSubmitButton} | body="${snippet}"`
+      );
       return {
         ok: false,
         error: "A SEFAZ nao retornou o conteudo da NFC-e (possivel bloqueio anti-bot ou chave invalida)",
@@ -261,7 +268,11 @@ export async function scrapeNfceFromUrl(url: string): Promise<InvoiceData> {
   const accessKey = extractAccessKey(url);
   if (!accessKey) throw new Error("Nao foi possivel extrair a chave de acesso do QR Code");
 
-  return scrapeFromSefaz(url);
+  const qrUrl = /^https?:/i.test(url)
+    ? url
+    : `https://www4.fazenda.rj.gov.br/consultaNFCe/QRCode?p=${accessKey}|3|1`;
+
+  return scrapeFromSefaz(qrUrl);
 }
 
 function extractAccessKey(url: string): string | null {
