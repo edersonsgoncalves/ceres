@@ -1,226 +1,259 @@
 import { InvoiceData, InvoiceItem } from "@/types/invoice";
+import { chromium, type Browser, type Page } from "playwright-core";
+import { existsSync } from "fs";
 
-export async function scrapeNfceFromUrl(url: string): Promise<InvoiceData> {
-  const accessKey = extractAccessKey(url);
-  if (!accessKey) throw new Error("Nao foi possivel extrair a chave de acesso do QR Code");
+const CONSULTA_URL = "https://www.fazenda.rj.gov.br/nfce/consulta";
 
-  return scrapeFromSefaz(accessKey);
+const CHROMIUM_BIN_CANDIDATES = [
+  "/usr/bin/chromium-browser",
+  "/usr/bin/chromium",
+  "/opt/google/chrome/chrome",
+  "/usr/bin/google-chrome",
+];
+
+const BROWSER_ARGS = [
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+  "--disable-gpu",
+];
+
+let browserPromise: Promise<Browser> | null = null;
+
+function detectChromiumBinary(): string | undefined {
+  for (const candidate of CHROMIUM_BIN_CANDIDATES) {
+    try {
+      if (existsSync(candidate)) return candidate;
+    } catch {
+      /* ignore */
+    }
+  }
+  return undefined;
 }
 
-function extractAccessKey(url: string): string | null {
-  const match = url.match(/chaveAcesso=([\d]+)/i) || url.match(/p=([\d]{44})/i);
-  if (match) return match[1];
+function getBrowser(): Promise<Browser> {
+  if (!browserPromise) {
+    const executablePath = detectChromiumBinary();
+    browserPromise = chromium
+      .launch({
+        headless: true,
+        args: BROWSER_ARGS,
+        ...(executablePath ? { executablePath } : {}),
+        timeout: 60000,
+      })
+      .catch((err) => {
+        browserPromise = null;
+        throw err;
+      });
+  }
+  return browserPromise;
+}
 
-  const numbers = url.replace(/\D/g, "");
-  if (numbers.length === 44) return numbers;
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  return null;
+async function getBodyText(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const t = document.body ? document.body.innerText : "";
+    return t as unknown as string;
+  });
+}
+
+async function getBodyHtml(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const h = document.body ? document.body.innerHTML : "";
+    return h as unknown as string;
+  });
+}
+
+async function getViewState(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const el = document.querySelector('input[name="javax.faces.ViewState"]');
+    return el ? (el as HTMLInputElement).value : "";
+  });
+}
+
+async function clickElementByName(page: Page, name: string): Promise<void> {
+  await page.evaluate((btnName) => {
+    const el = document.querySelector(`[name="${btnName}"]`) as HTMLElement | null;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    ["mousemove", "mousedown", "mouseup"].forEach((type) => {
+      el.dispatchEvent(
+        new MouseEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          clientX: x,
+          clientY: y,
+        })
+      );
+    });
+    el.click();
+  }, name);
+}
+
+async function fillAccessKey(page: Page, accessKey: string): Promise<boolean> {
+  try {
+    await page.waitForSelector('input[id*=chave], input[name*=chave]', {
+      timeout: 15000,
+    });
+    await page.evaluate((key) => {
+      const el = document.querySelector(
+        'input[id*=chave], input[name*=chave]'
+      ) as HTMLInputElement | null;
+      if (!el) return;
+      el.value = key;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }, accessKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function clickConsultar(page: Page): Promise<void> {
+  const selector =
+    "#consultarBtn, input[type=submit], button[type=submit], input[id*=consultar], button[id*=consultar]";
+  try {
+    await page.locator(selector).first().click({ force: true, timeout: 5000 });
+  } catch {
+    await page.evaluate(() => {
+      const el = document.querySelector(
+        "#consultarBtn, input[type=submit], button[type=submit], input[id*=consultar], button[id*=consultar]"
+      ) as HTMLElement | null;
+      if (el) el.click();
+    });
+  }
+}
+
+async function findDetailButtonName(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const exact = document.querySelector(
+      'input[alt="Visualizar NFC-e detalhada"], input[title="Visualizar NFC-e detalhada"], input.imgBtDetalhada'
+    ) as HTMLInputElement | null;
+    if (exact) return exact.name || "";
+
+    const buttons = Array.from(
+      document.querySelectorAll("input[type=image], input[type=button], button")
+    ).map((b) => {
+      const el = b as HTMLButtonElement | HTMLInputElement;
+      return {
+        name: (el.name as string) || "",
+        alt: (el as HTMLInputElement).alt || "",
+        title: (el as HTMLInputElement).title || "",
+        value: (el as HTMLInputElement).value || "",
+        text: (el.textContent || "").slice(0, 50),
+      };
+    });
+
+    for (const b of buttons) {
+      const val = `${b.alt} ${b.title} ${b.value} ${b.text}`.toLowerCase();
+      if (val.includes("detalhad") || val.includes("completa")) return b.name;
+    }
+    return "";
+  });
+}
+
+interface PlaywrightScrapeResult {
+  ok: boolean;
+  text?: string;
+  html?: string;
+  detailFound?: boolean;
+  error?: string;
+}
+
+async function runPlaywrightScraper(accessKey: string): Promise<PlaywrightScrapeResult> {
+  const browser = await getBrowser();
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+
+  try {
+    await page.goto(CONSULTA_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+
+    const filled = await fillAccessKey(page, accessKey);
+    if (!filled) {
+      throw new Error("Campo da chave de acesso nao encontrado na pagina");
+    }
+
+    await sleep(300);
+    await clickConsultar(page);
+
+    await page
+      .waitForFunction(
+        () => document.body && document.body.innerText.includes("DOCUMENTO AUXILIAR"),
+        { timeout: 20000 }
+      )
+      .catch(() => {});
+
+    await sleep(500);
+
+    let text = await getBodyText(page);
+    let html = await getBodyHtml(page);
+    let prevViewState = await getViewState(page);
+    let detailFound = html.includes("fixo-prod-serv-descricao");
+
+    for (let attempt = 0; attempt < 4 && !detailFound; attempt++) {
+      const btnName = await findDetailButtonName(page);
+      if (!btnName) {
+        html = await getBodyHtml(page);
+        if (html.includes("fixo-prod-serv-descricao")) {
+          detailFound = true;
+          break;
+        }
+        await sleep(300);
+        continue;
+      }
+
+      await clickElementByName(page, btnName);
+
+      await page
+        .waitForFunction(
+          (prevState) => {
+            const h = document.body ? document.body.innerHTML : "";
+            if (h.includes("fixo-prod-serv-descricao")) return true;
+            const el = document.querySelector('input[name="javax.faces.ViewState"]');
+            const vs = el ? (el as HTMLInputElement).value : "";
+            return vs !== "" && vs !== prevState;
+          },
+          prevViewState,
+          { timeout: 15000 }
+        )
+        .catch(() => {});
+
+      html = await getBodyHtml(page);
+      prevViewState = await getViewState(page);
+
+      if (html.includes("fixo-prod-serv-descricao")) {
+        detailFound = true;
+        break;
+      }
+
+      await sleep(300);
+    }
+
+    if (!html) html = await getBodyHtml(page);
+    text = await getBodyText(page);
+
+    return { ok: true, text, html, detailFound };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Falha ao consultar SEFAZ",
+    };
+  } finally {
+    await page.close().catch(() => {});
+  }
 }
 
 async function scrapeFromSefaz(accessKey: string): Promise<InvoiceData> {
-  const script = `
-import time
-import json
+  let lastError = "Falha ao consultar SEFAZ";
 
-def read_text():
-    try:
-        t = js("document.body ? document.body.innerText : ''")
-        return str(t) if t else ""
-    except:
-        return ""
-
-def read_html():
-    try:
-        h = js("document.body ? document.body.innerHTML : ''")
-        return str(h) if h else ""
-    except:
-        return ""
-
-def get_view_state():
-    try:
-        v = js("""
-            (function(){
-                var e = document.querySelector('input[name="javax.faces.ViewState"]');
-                return e ? e.value : '';
-            })()
-        """)
-        return str(v) if v else ""
-    except:
-        return ""
-
-def wait_for(check, timeout, interval=0.4):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            value = check()
-            if value:
-                return value
-        except:
-            pass
-        time.sleep(interval)
-    return ""
-
-def wait_dom_quiet(quiet_for=0.8, timeout=8):
-    try:
-        js("""
-            if (!window.__bhMutCount) {
-                window.__bhMutCount = 0;
-                var mo = new MutationObserver(function(){ window.__bhMutCount++; });
-                mo.observe(document.documentElement, {childList:true, subtree:true, attributes:true});
-                window.__bhObserver = mo;
-            }
-        """)
-    except:
-        return
-    deadline = time.time() + timeout
-    last_count = -1
-    stable_since = None
-    while time.time() < deadline:
-        try:
-            count = js("window.__bhMutCount || 0")
-        except:
-            count = last_count
-        if count == last_count:
-            if stable_since is None:
-                stable_since = time.time()
-            elif time.time() - stable_since >= quiet_for:
-                return
-        else:
-            stable_since = None
-        last_count = count
-        time.sleep(0.2)
-
-def force_page_visible():
-    try:
-        js("""
-            try {
-                Object.defineProperty(document, 'hidden', {value:false, configurable:true});
-                Object.defineProperty(document, 'visibilityState', {value:'visible', configurable:true});
-                document.dispatchEvent(new Event('visibilitychange'));
-                window.focus();
-            } catch(e) {}
-        """)
-    except:
-        pass
-
-def fire_real_click(selector):
-    try:
-        return bool(js("""
-            (function(){
-                var el = document.querySelector(%s);
-                if (!el) return false;
-                var rect = el.getBoundingClientRect();
-                var x = rect.left + rect.width/2;
-                var y = rect.top + rect.height/2;
-                ['mousemove','mousedown','mouseup'].forEach(function(type){
-                    var ev = new MouseEvent(type, {
-                        bubbles: true, cancelable: true, view: window,
-                        clientX: x, clientY: y
-                    });
-                    el.dispatchEvent(ev);
-                });
-                el.click();
-                return true;
-            })()
-        """ % json.dumps(selector)))
-    except:
-        return False
-
-try:
-    new_tab('https://www.fazenda.rj.gov.br/nfce/consulta')
-    force_page_visible()
-
-    wait_for(lambda: js("!!document.querySelector('input[id*=chave], input[name*=chave]')"), 15)
-    force_page_visible()
-
-    js("""
-        (function(){
-            var el = document.querySelector('input[id*=chave], input[name*=chave]');
-            if (!el) return;
-            el.value = '${accessKey}';
-            el.dispatchEvent(new Event('input', {bubbles:true}));
-            el.dispatchEvent(new Event('change', {bubbles:true}));
-        })();
-    """)
-
-    wait_dom_quiet(0.4, 3)
-    fire_real_click("#consultarBtn, input[type=submit], button[type=submit], input[id*=consultar], button[id*=consultar]")
-
-    text = wait_for(lambda: (lambda t: t if 'DOCUMENTO AUXILIAR' in t else "")(read_text()), 20)
-
-    force_page_visible()
-    wait_dom_quiet(0.8, 6)
-
-    def find_detail_button():
-        try:
-            r = js("""
-                (function(){
-                    var exact = document.querySelector('input[alt="Visualizar NFC-e detalhada"], input[title="Visualizar NFC-e detalhada"], input.imgBtDetalhada');
-                    if (exact) return [{name: exact.name || '', alt: exact.alt || '', title: exact.title || '', value: exact.value || '', text: ''}];
-                    return Array.from(document.querySelectorAll('input[type=image], input[type=button], button')).map(
-                        b => ({name: b.name || '', alt: b.alt || '', title: b.title || '', value: b.value || '', text: (b.textContent || '').slice(0, 50)})
-                    );
-                })()
-            """)
-            if r:
-                for b in r:
-                    val = (b.get('alt','') + ' ' + b.get('title','') + ' ' + b.get('value','') + ' ' + b.get('text','')).lower()
-                    if 'detalhad' in val or 'completa' in val:
-                        return b.get('name','')
-        except:
-            pass
-        return ""
-
-    html = ""
-    prev_view_state = get_view_state()
-
-    for attempt in range(4):
-        btn = find_detail_button()
-        if not btn:
-            html = read_html()
-            if 'fixo-prod-serv-descricao' in html:
-                break
-            wait_dom_quiet(0.5, 3)
-            continue
-
-        clicked = fire_real_click('[name="' + btn + '"]')
-        if not clicked:
-            time.sleep(0.5)
-            continue
-
-        def postback_done():
-            h = read_html()
-            if 'fixo-prod-serv-descricao' in h:
-                return h
-            vs = get_view_state()
-            if vs and vs != prev_view_state:
-                return h or " "
-            return ""
-
-        html = wait_for(postback_done, 15)
-        prev_view_state = get_view_state()
-
-        if html and 'fixo-prod-serv-descricao' in html:
-            break
-
-        wait_dom_quiet(0.5, 3)
-
-    if not html:
-        html = read_html()
-
-    close_tab()
-    print(json.dumps({"ok": True, "text": text, "html": html, "detailFound": bool(html) and 'fixo-prod-serv-descricao' in html}))
-except Exception as e:
-    try:
-        close_tab()
-    except:
-        pass
-    print(json.dumps({"ok": False, "error": str(e)}))
-`;
-
-  let lastError: string | undefined;
   for (let attempt = 1; attempt <= 3; attempt++) {
-    const result = await runBrowserHarness(script);
+    const result = await runPlaywrightScraper(accessKey);
     if (result.ok) {
       console.log(
         "[SEFAZ] Detail page:", result.detailFound,
@@ -230,43 +263,13 @@ except Exception as e:
       );
       return parseSefazResponse(result.text || "", result.html || "");
     }
-    lastError = result.error;
-    console.warn(`[SEFAZ] attempt ${attempt} failed: ${result.error}`);
-    if (attempt < 3) await new Promise((r) => setTimeout(r, 2000));
+
+    lastError = result.error || lastError;
+    console.warn(`[SEFAZ] attempt ${attempt} failed: ${lastError}`);
+    if (attempt < 3) await sleep(2000);
   }
 
-  throw new Error(lastError || "Falha ao consultar SEFAZ");
-}
-
-async function runBrowserHarness(
-  script: string
-): Promise<{ ok: boolean; text?: string; html?: string; error?: string; detailFound?: boolean }> {
-  const { execSync } = await import("child_process");
-  const fs = await import("fs");
-  const os = await import("os");
-  const path = await import("path");
-
-  const tmpFile = path.join(os.tmpdir(), `bh_${Date.now()}.py`);
-  fs.writeFileSync(tmpFile, script, "utf-8");
-
-  try {
-    const cmd = `type "${tmpFile}" | browser-harness`;
-    const output = execSync(cmd, {
-      timeout: 120000,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      windowsHide: false,
-    });
-
-    const lines = output.trim().split("\n");
-    const jsonLine = lines.find((l) => l.trim().startsWith("{"));
-    if (!jsonLine) return { ok: false, error: `No JSON output. Raw: ${output.slice(0, 500)}` };
-    return JSON.parse(jsonLine.trim());
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Browser harness failed" };
-  } finally {
-    try { fs.unlinkSync(tmpFile); } catch {}
-  }
+  throw new Error(lastError);
 }
 
 export function parseSefazResponse(text: string, html: string): InvoiceData {
