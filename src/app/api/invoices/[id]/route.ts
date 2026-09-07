@@ -41,7 +41,7 @@ export async function GET(
 
     const { id } = await params;
     const invoice = await prisma.invoice.findUnique({
-      where: { id },
+      where: { id, userId: user.id },
       include: { items: true, store: true },
     });
 
@@ -77,7 +77,7 @@ export async function PUT(
     const { items, totalAmount } = body;
 
     const existingInvoice = await prisma.invoice.findUnique({
-      where: { id },
+      where: { id, userId: user.id },
     });
 
     if (!existingInvoice) {
@@ -140,7 +140,7 @@ export async function DELETE(
 
     const { id } = await params;
     const existingInvoice = await prisma.invoice.findUnique({
-      where: { id },
+      where: { id, userId: user.id },
     });
 
     if (!existingInvoice) {

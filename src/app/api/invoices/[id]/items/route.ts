@@ -13,6 +13,18 @@ export async function GET(
     }
 
     const { id } = await params;
+    const invoice = await prisma.invoice.findUnique({
+      where: { id, userId: user.id },
+      select: { id: true },
+    });
+
+    if (!invoice) {
+      return NextResponse.json(
+        { error: "Nota fiscal não encontrada" },
+        { status: 404 }
+      );
+    }
+
     const items = await prisma.invoiceItem.findMany({
       where: { invoiceId: id },
     });
@@ -45,6 +57,18 @@ export async function POST(
       return NextResponse.json(
         { error: "Nome, quantidade e preço são obrigatórios" },
         { status: 400 }
+      );
+    }
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id, userId: user.id },
+      select: { id: true },
+    });
+
+    if (!invoice) {
+      return NextResponse.json(
+        { error: "Nota fiscal não encontrada" },
+        { status: 404 }
       );
     }
 
