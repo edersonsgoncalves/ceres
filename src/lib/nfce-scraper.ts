@@ -32,7 +32,7 @@ let browserPromise: Promise<Browser> | null = null;
 function detectChromiumBinary(): string | undefined {
   for (const candidate of CHROMIUM_BIN_CANDIDATES) {
     try {
-      if (existsSync(candidate)) return candidate;
+      if (existsSync(/*turbopackIgnore: true*/ candidate)) return candidate;
     } catch {
       /* ignore */
     }
