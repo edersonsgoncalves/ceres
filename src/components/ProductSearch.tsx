@@ -86,24 +86,24 @@ export function ProductSearch({ onSelect }: ProductSearchProps) {
       </div>
 
       {showResults && results.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full rounded-lg border bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 w-full rounded-lg border bg-white dark:bg-neutral-900 shadow-lg">
           <div className="max-h-64 overflow-y-auto">
             {results.map((product) => (
               <button
                 key={product.id}
-                className="flex w-full items-center justify-between border-b p-3 text-left hover:bg-gray-50 last:border-b-0"
+                className="flex w-full items-center justify-between border-b p-3 text-left hover:bg-gray-50 dark:hover:bg-neutral-800 last:border-b-0"
                 onClick={() => handleSelect(product)}
               >
                 <div>
                   <p className="font-medium">{product.name}</p>
                   {product.eanCode && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       EAN: {product.eanCode}
                     </p>
                   )}
                 </div>
                 {product.category && (
-                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">
+                  <span className="rounded-full bg-gray-100 dark:bg-neutral-800 px-2 py-1 text-xs text-gray-600 dark:text-gray-400">
                     {product.category.name}
                   </span>
                 )}
@@ -114,8 +114,8 @@ export function ProductSearch({ onSelect }: ProductSearchProps) {
       )}
 
       {showResults && results.length === 0 && (
-        <div className="absolute z-10 mt-1 w-full rounded-lg border bg-white p-4 text-center shadow-lg">
-          <p className="text-gray-500">Nenhum produto encontrado</p>
+        <div className="absolute z-10 mt-1 w-full rounded-lg border bg-white dark:bg-neutral-900 p-4 text-center shadow-lg">
+          <p className="text-gray-500 dark:text-gray-400">Nenhum produto encontrado</p>
         </div>
       )}
     </div>

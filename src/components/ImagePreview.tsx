@@ -9,12 +9,12 @@ export function ImagePreview({ file, previewUrl }: ImagePreviewProps) {
   if (!file || !previewUrl) return null;
 
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
+    <div className="rounded-lg border border-gray-200 dark:border-neutral-700 p-4">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Preview da imagem
         </span>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-gray-500 dark:text-gray-400">
           {(file.size / 1024 / 1024).toFixed(2)} MB
         </span>
       </div>

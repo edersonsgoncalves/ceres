@@ -23,7 +23,7 @@ export function PriceComparison({ productName, prices }: PriceComparisonProps) {
   if (prices.length === 0) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-500">
+        <CardContent className="py-8 text-center text-gray-500 dark:text-gray-400">
           Nenhum preço registrado para este produto
         </CardContent>
       </Card>
@@ -53,38 +53,38 @@ export function PriceComparison({ productName, prices }: PriceComparisonProps) {
                   key={entry.id}
                   className={`flex items-center justify-between rounded-lg p-3 ${
                     isLowest
-                      ? "border-2 border-green-500 bg-green-50"
+                      ? "border-2 border-green-500 bg-green-50 dark:bg-green-950"
                       : isHighest
-                      ? "border border-red-200 bg-red-50"
-                      : "border border-gray-200"
+                      ? "border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950"
+                      : "border border-gray-200 dark:border-neutral-700"
                   }`}
                 >
                   <div>
                     <p className="font-medium">{entry.store.name}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {entry.store.city && entry.store.state
                         ? `${entry.store.city}, ${entry.store.state}`
                         : "Localização não informada"}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       {new Date(entry.date).toLocaleDateString("pt-BR")}
                     </p>
                   </div>
                   <div className="text-right">
                     <p
                       className={`text-xl font-bold ${
-                        isLowest ? "text-green-600" : isHighest ? "text-red-600" : "text-gray-800"
+                        isLowest ? "text-green-600 dark:text-green-400" : isHighest ? "text-red-600 dark:text-red-400" : "text-gray-800 dark:text-gray-200"
                       }`}
                     >
                       R$ {entry.price.toFixed(2)}
                     </p>
                     {isLowest && (
-                      <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-800">
+                      <span className="rounded-full bg-green-100 dark:bg-green-900 px-2 py-1 text-xs text-green-800 dark:text-green-200">
                         Menor preço
                       </span>
                     )}
                     {isHighest && (
-                      <span className="rounded-full bg-red-100 px-2 py-1 text-xs text-red-800">
+                      <span className="rounded-full bg-red-100 dark:bg-red-900 px-2 py-1 text-xs text-red-800 dark:text-red-200">
                         Maior preço
                       </span>
                     )}

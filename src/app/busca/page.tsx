@@ -87,7 +87,7 @@ export default function BuscaPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Buscar Produtos</h1>
-        <p className="text-gray-500">Compare precos entre estabelecimentos</p>
+        <p className="text-gray-500 dark:text-gray-400">Compare precos entre estabelecimentos</p>
       </div>
 
       <div className="flex gap-2">
@@ -109,14 +109,14 @@ export default function BuscaPage() {
             type="checkbox"
             checked={groupByEan}
             onChange={handleGroupByEanToggle}
-            className="rounded border-gray-300"
+            className="rounded border-gray-300 dark:border-neutral-600"
           />
-          <span className="text-sm text-gray-600">Agrupar por EAN</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">Agrupar por EAN</span>
         </label>
       </div>
 
       {loading ? (
-        <div className="text-center text-gray-500 py-8">Carregando...</div>
+        <div className="text-center text-gray-500 dark:text-gray-400 py-8">Carregando...</div>
       ) : (
         <>
           {groupByEan && eanGroups.length > 0 && (
@@ -131,10 +131,10 @@ export default function BuscaPage() {
                       <div className="min-w-0">
                         <h3 className="font-medium truncate">{group.groupName}</h3>
                         {group.eanPrefix && (
-                          <p className="text-xs text-gray-400 font-mono">EAN: {group.eanPrefix}*</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 font-mono">EAN: {group.eanPrefix}*</p>
                         )}
                       </div>
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded whitespace-nowrap ml-2">
+                      <span className="text-xs bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded whitespace-nowrap ml-2">
                         {group.products.length} {group.products.length === 1 ? "variante" : "variantes"}
                       </span>
                     </div>
@@ -143,25 +143,25 @@ export default function BuscaPage() {
                         <Link
                           key={product.productName}
                           href={`/produtos/${encodeURIComponent(product.productName)}/revisao`}
-                          className="flex items-center justify-between rounded p-2 hover:bg-gray-50 transition-colors"
+                          className="flex items-center justify-between rounded p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
                         >
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{product.productName}</p>
                             {product.category && (
-                              <p className="text-xs text-gray-500 truncate">{product.category}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{product.category}</p>
                             )}
                           </div>
                           <div className="text-right text-sm ml-2">
                             <div className="flex gap-2">
-                              <span className="text-green-600">R$ {product.minPrice.toFixed(2)}</span>
-                              <span className="text-red-600">R$ {product.maxPrice.toFixed(2)}</span>
+                              <span className="text-green-600 dark:text-green-400">R$ {product.minPrice.toFixed(2)}</span>
+                              <span className="text-red-600 dark:text-red-400">R$ {product.maxPrice.toFixed(2)}</span>
                             </div>
-                            <p className="text-xs text-gray-400">{product.purchaseCount}x</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{product.purchaseCount}x</p>
                           </div>
                         </Link>
                       ))}
                     </div>
-                    <div className="mt-2 pt-2 border-t flex justify-between text-xs text-gray-500">
+                    <div className="mt-2 pt-2 border-t flex justify-between text-xs text-gray-500 dark:text-gray-400">
                       <span>{group.stats.totalPurchases} compras</span>
                       <span>R$ {group.stats.totalSpent.toFixed(2)}</span>
                     </div>
@@ -185,21 +185,21 @@ export default function BuscaPage() {
                   >
                     <p className="font-medium truncate">{product.productName}</p>
                     {product.category && (
-                      <p className="text-xs text-gray-500">{product.category}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{product.category}</p>
                     )}
                     {product.barcode && (
-                      <p className="text-xs text-gray-400 font-mono">EAN: {product.barcode}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 font-mono">EAN: {product.barcode}</p>
                     )}
                     <div className="mt-3 space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Max:</span>
-                        <span className="font-medium text-red-600">R$ {product.maxPrice.toFixed(2)}</span>
+                        <span className="text-gray-500 dark:text-gray-400">Max:</span>
+                        <span className="font-medium text-red-600 dark:text-red-400">R$ {product.maxPrice.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Min:</span>
-                        <span className="font-medium text-green-600">R$ {product.minPrice.toFixed(2)}</span>
+                        <span className="text-gray-500 dark:text-gray-400">Min:</span>
+                        <span className="font-medium text-green-600 dark:text-green-400">R$ {product.minPrice.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-xs text-gray-400">
+                      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
                         <span>{product.purchaseCount} compras</span>
                         {product.lastPurchase && (
                           <span>Ult: {new Date(product.lastPurchase).toLocaleDateString("pt-BR")}</span>
@@ -213,7 +213,7 @@ export default function BuscaPage() {
           )}
 
           {products.length === 0 && eanGroups.length === 0 && (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
               Nenhum produto encontrado
             </div>
           )}

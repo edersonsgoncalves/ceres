@@ -36,9 +36,9 @@ export default function RevisaoPage() {
     fetchInvoice();
   }, [params.id]);
 
-  if (loading) return <div className="text-center text-gray-500">Carregando...</div>;
+  if (loading) return <div className="text-center text-gray-500 dark:text-gray-400">Carregando...</div>;
   if (error) return <div className="text-center text-red-500">{error}</div>;
-  if (!invoice) return <div className="text-center text-gray-500">Nota fiscal nao encontrada</div>;
+  if (!invoice) return <div className="text-center text-gray-500 dark:text-gray-400">Nota fiscal nao encontrada</div>;
 
   return (
     <InvoiceReview

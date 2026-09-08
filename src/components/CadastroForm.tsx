@@ -87,7 +87,7 @@ export function CadastroForm() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Nome</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
             <Input
               type="text"
               value={formData.name}
@@ -98,7 +98,7 @@ export function CadastroForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Email</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
             <Input
               type="email"
               value={formData.email}
@@ -109,7 +109,7 @@ export function CadastroForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Senha</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Senha</label>
             <Input
               type="password"
               value={formData.password}
@@ -120,7 +120,7 @@ export function CadastroForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Confirmar Senha</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Confirmar Senha</label>
             <Input
               type="password"
               value={formData.confirmPassword}
@@ -131,7 +131,7 @@ export function CadastroForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Localização</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Localização</label>
             <LocationPicker onLocationSelect={handleLocationSelect} />
           </div>
 

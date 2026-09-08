@@ -272,7 +272,7 @@ export function InvoiceUpload() {
           <CardDescription>Aponte a camera para o QR Code da nota fiscal</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {loading && <p className="text-blue-600 text-sm">Buscando dados da nota fiscal...</p>}
+          {loading && <p className="text-blue-600 dark:text-blue-400 text-sm">Buscando dados da nota fiscal...</p>}
           {error && <p className="text-red-500 text-sm">{error}</p>}
           {!loading && <QRCodeScanner onUrlDetected={handleQrUrlDetected} onError={setError} />}
           <Button variant="ghost" onClick={resetState}>Voltar</Button>
@@ -304,12 +304,12 @@ export function InvoiceUpload() {
               inputMode="numeric"
               disabled={loading}
             />
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {digitCount}/44 digitos
             </p>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          {loading && <p className="text-blue-600 text-sm">Buscando dados da nota fiscal...</p>}
+          {loading && <p className="text-blue-600 dark:text-blue-400 text-sm">Buscando dados da nota fiscal...</p>}
           <div className="flex gap-2">
             <Button
               onClick={handleAccessKeySubmit}
@@ -343,7 +343,7 @@ export function InvoiceUpload() {
             disabled={loading}
           />
           {importPreview && (
-            <div className="p-3 bg-gray-50 rounded-lg text-sm space-y-1">
+            <div className="p-3 bg-gray-50 dark:bg-neutral-950 rounded-lg text-sm space-y-1">
               <p><strong>Loja:</strong> {importPreview.store}</p>
               <p><strong>Data:</strong> {importPreview.date}</p>
               <p><strong>Total:</strong> R$ {importPreview.total.toFixed(2)}</p>
@@ -380,25 +380,25 @@ export function InvoiceUpload() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-gray-700">Nome do estabelecimento (opcional)</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nome do estabelecimento (opcional)</label>
             <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="Ex: Supermercado XYZ" className="mt-1" />
           </div>
           <div
-            className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"}`}
+            className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50 dark:bg-blue-950" : "border-gray-300 dark:border-neutral-600 hover:border-gray-400 dark:hover:border-neutral-500"}`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
           >
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f); }} />
             <div className="space-y-4">
-              <div className="text-gray-500">
+              <div className="text-gray-500 dark:text-gray-400">
                 <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
               <div>
-                <p className="text-gray-700">Arraste e solte a imagem aqui, ou{" "}<button type="button" onClick={() => fileInputRef.current?.click()} className="text-blue-600 hover:underline">clique para selecionar</button></p>
-                <p className="mt-1 text-sm text-gray-500">PNG, JPG ou WEBP (max. 10MB)</p>
+                <p className="text-gray-700 dark:text-gray-300">Arraste e solte a imagem aqui, ou{" "}<button type="button" onClick={() => fileInputRef.current?.click()} className="text-blue-600 dark:text-blue-400 hover:underline">clique para selecionar</button></p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">PNG, JPG ou WEBP (max. 10MB)</p>
               </div>
             </div>
           </div>

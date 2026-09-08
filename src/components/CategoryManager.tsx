@@ -105,7 +105,7 @@ export function CategoryManager() {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-500">Carregando...</div>;
+    return <div className="text-center text-gray-500 dark:text-gray-400">Carregando...</div>;
   }
 
   return (
@@ -166,7 +166,7 @@ export function CategoryManager() {
                     <div>
                       <p className="font-medium">{category.name}</p>
                       {category._count && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           {category._count.products} produtos
                         </p>
                       )}

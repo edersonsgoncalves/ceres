@@ -59,7 +59,7 @@ export function StoreForm({ onStoreCreated }: StoreFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Nome</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -69,7 +69,7 @@ export function StoreForm({ onStoreCreated }: StoreFormProps) {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">CNPJ</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">CNPJ</label>
             <Input
               value={cnpj}
               onChange={(e) => setCnpj(e.target.value)}
@@ -78,7 +78,7 @@ export function StoreForm({ onStoreCreated }: StoreFormProps) {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Endereço</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Endereço</label>
             <Input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
@@ -88,7 +88,7 @@ export function StoreForm({ onStoreCreated }: StoreFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">Cidade</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Cidade</label>
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
@@ -96,7 +96,7 @@ export function StoreForm({ onStoreCreated }: StoreFormProps) {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Estado</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado</label>
               <Input
                 value={state}
                 onChange={(e) => setState(e.target.value)}

@@ -46,7 +46,7 @@ export default function NotasFiscaisPage() {
     }
   };
 
-  if (loading) return <div className="text-center text-gray-500 p-8">Carregando...</div>;
+  if (loading) return <div className="text-center text-gray-500 dark:text-gray-400 p-8">Carregando...</div>;
   if (error) return <div className="text-center text-red-500 p-8">{error}</div>;
 
   return (
@@ -54,7 +54,7 @@ export default function NotasFiscaisPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Notas Fiscais</h1>
-          <p className="text-gray-500">{invoices.length} notas cadastradas</p>
+          <p className="text-gray-500 dark:text-gray-400">{invoices.length} notas cadastradas</p>
         </div>
         <Link href="/notas-fiscais/nova">
           <Button>Nova NF</Button>
@@ -63,7 +63,7 @@ export default function NotasFiscaisPage() {
 
       {invoices.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center text-gray-500">
+          <CardContent className="p-8 text-center text-gray-500 dark:text-gray-400">
             Nenhuma nota fiscal cadastrada.{" "}
             <Link href="/notas-fiscais/nova" className="text-blue-500 underline">
               Cadastrar primeira nota
@@ -78,14 +78,14 @@ export default function NotasFiscaisPage() {
                 <CardContent className="p-4 flex justify-between items-center">
                   <div>
                     <p className="font-semibold">{inv.storeName}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {inv.invoiceNumber} · {inv.totalItemsCount} itens
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="font-bold text-lg">R$ {inv.total.toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {new Date(inv.createdAt).toLocaleDateString("pt-BR")}
                       </p>
                     </div>

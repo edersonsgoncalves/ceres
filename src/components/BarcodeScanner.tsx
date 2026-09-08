@@ -117,7 +117,7 @@ export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
 
         {error && <p className="text-sm text-red-500">{error}</p>}
 
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           Posicione o código de barras na câmera ou digite manualmente.
         </p>
       </CardContent>

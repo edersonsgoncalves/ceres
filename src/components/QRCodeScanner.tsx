@@ -78,7 +78,7 @@ export function QRCodeScanner({ onUrlDetected, onError }: QRCodeScannerProps) {
       <CardContent className="space-y-4">
         <div id="qr-reader" className="rounded-lg overflow-hidden" style={{ display: scanning ? "block" : "none" }} />
         {status && (
-          <p className={`text-sm ${status.startsWith("Erro") ? "text-red-500" : "text-gray-600"}`}>{status}</p>
+          <p className={`text-sm ${status.startsWith("Erro") ? "text-red-500" : "text-gray-600 dark:text-gray-400"}`}>{status}</p>
         )}
         <div className="flex gap-2">
           {!scanning ? (

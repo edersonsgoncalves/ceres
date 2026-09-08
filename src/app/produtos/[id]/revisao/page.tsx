@@ -87,9 +87,9 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
     }
   };
 
-  if (loading) return <div className="text-center text-gray-500 p-8">Carregando...</div>;
+  if (loading) return <div className="text-center text-gray-500 dark:text-gray-400 p-8">Carregando...</div>;
   if (error && !data) return <div className="text-center text-red-500 p-8">{error}</div>;
-  if (!data) return <div className="text-center text-gray-500 p-8">Produto nao encontrado</div>;
+  if (!data) return <div className="text-center text-gray-500 dark:text-gray-400 p-8">Produto nao encontrado</div>;
 
   const canEditName = userRole === "admin";
 
@@ -98,7 +98,7 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Detalhes do Produto</h1>
-          <p className="text-gray-500">{data.product.name}</p>
+          <p className="text-gray-500 dark:text-gray-400">{data.product.name}</p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>Voltar</Button>
       </div>
@@ -110,7 +110,7 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">Nome</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
@@ -118,11 +118,11 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
                 className="mt-1"
               />
               {!canEditName && (
-                <p className="text-xs text-gray-400 mt-1">Apenas administradores podem editar o nome</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Apenas administradores podem editar o nome</p>
               )}
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Codigo de Barras</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Codigo de Barras</label>
               <Input
                 value={editBarcode}
                 onChange={(e) => setEditBarcode(e.target.value)}
@@ -131,7 +131,7 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Categoria</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
               <Input
                 value={editCategory}
                 onChange={(e) => setEditCategory(e.target.value)}
@@ -153,28 +153,28 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
           <CardContent>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-500">Preco Maximo</p>
-                <p className="text-lg font-bold text-red-600">R$ {data.stats.maxPrice.toFixed(2)}</p>
+                <p className="text-gray-500 dark:text-gray-400">Preco Maximo</p>
+                <p className="text-lg font-bold text-red-600 dark:text-red-400">R$ {data.stats.maxPrice.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Preco Minimo</p>
-                <p className="text-lg font-bold text-green-600">R$ {data.stats.minPrice.toFixed(2)}</p>
+                <p className="text-gray-500 dark:text-gray-400">Preco Minimo</p>
+                <p className="text-lg font-bold text-green-600 dark:text-green-400">R$ {data.stats.minPrice.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Preco Medio</p>
+                <p className="text-gray-500 dark:text-gray-400">Preco Medio</p>
                 <p className="text-lg font-bold">R$ {data.stats.avgPrice.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Total Gasto</p>
+                <p className="text-gray-500 dark:text-gray-400">Total Gasto</p>
                 <p className="text-lg font-bold">R$ {data.stats.totalSpent.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Total de Compras</p>
+                <p className="text-gray-500 dark:text-gray-400">Total de Compras</p>
                 <p className="text-lg font-bold">{data.stats.totalPurchases}</p>
               </div>
               <div>
-                <p className="text-gray-500">Economia Possivel</p>
-                <p className="text-lg font-bold text-blue-600">
+                <p className="text-gray-500 dark:text-gray-400">Economia Possivel</p>
+                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                   R$ {(data.stats.maxPrice - data.stats.minPrice).toFixed(2)}
                 </p>
               </div>
@@ -202,10 +202,10 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
               </thead>
               <tbody>
                 {data.purchases.map((purchase) => (
-                  <tr key={purchase.id} className="border-b hover:bg-gray-50">
+                  <tr key={purchase.id} className="border-b hover:bg-gray-50 dark:hover:bg-neutral-800">
                     <td className="p-2">{new Date(purchase.date).toLocaleDateString("pt-BR")}</td>
                     <td className="p-2">{purchase.store.name}</td>
-                    <td className="p-2 text-gray-500 text-xs">{purchase.name}</td>
+                    <td className="p-2 text-gray-500 dark:text-gray-400 text-xs">{purchase.name}</td>
                     <td className="p-2 text-right">{purchase.quantity} {purchase.unit}</td>
                     <td className="p-2 text-right">R$ {purchase.unitPrice.toFixed(2)}</td>
                     <td className="p-2 text-right font-medium">R$ {purchase.totalPrice.toFixed(2)}</td>

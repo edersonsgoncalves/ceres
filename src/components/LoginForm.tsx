@@ -58,7 +58,7 @@ export function LoginForm() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Email</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
             <Input
               type="email"
               value={email}
@@ -69,7 +69,7 @@ export function LoginForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Senha</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Senha</label>
             <Input
               type="password"
               value={password}
@@ -89,8 +89,8 @@ export function LoginForm() {
         </form>
 
         <div className="mt-4 text-center text-sm">
-          <span className="text-gray-500">Não tem conta? </span>
-          <Link href="/cadastro" className="text-blue-600 hover:underline">
+          <span className="text-gray-500 dark:text-gray-400">Não tem conta? </span>
+          <Link href="/cadastro" className="text-blue-600 dark:text-blue-400 hover:underline">
             Cadastre-se
           </Link>
         </div>

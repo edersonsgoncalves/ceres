@@ -30,7 +30,7 @@ export function SearchResults({ products }: SearchResultsProps) {
   if (products.length === 0) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-500">
+        <CardContent className="py-8 text-center text-gray-500 dark:text-gray-400">
           Nenhum produto encontrado
         </CardContent>
       </Card>
@@ -55,7 +55,7 @@ export function SearchResults({ products }: SearchResultsProps) {
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{product.name}</CardTitle>
                   {product.category && (
-                    <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">
+                    <span className="rounded-full bg-gray-100 dark:bg-neutral-800 px-2 py-1 text-xs text-gray-600 dark:text-gray-400">
                       {product.category.name}
                     </span>
                   )}
@@ -65,12 +65,12 @@ export function SearchResults({ products }: SearchResultsProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     {product.eanCode && (
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         EAN: {product.eanCode}
                       </p>
                     )}
                     {latestPrice && (
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         Último preço: R${" "}
                         {latestPrice.price.toFixed(2)} em{" "}
                         {latestPrice.store.name}
@@ -78,7 +78,7 @@ export function SearchResults({ products }: SearchResultsProps) {
                     )}
                   </div>
                   {latestPrice && (
-                    <p className="text-xl font-bold text-green-600">
+                    <p className="text-xl font-bold text-green-600 dark:text-green-400">
                       R$ {latestPrice.price.toFixed(2)}
                     </p>
                   )}

@@ -39,7 +39,7 @@ export default function EstabelecimentosPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Estabelecimentos</h1>
-        <p className="text-gray-500">
+        <p className="text-gray-500 dark:text-gray-400">
           Gerencie os supermercados e lojas cadastrados
         </p>
       </div>
@@ -53,9 +53,9 @@ export default function EstabelecimentosPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-gray-500">Carregando...</p>
+              <p className="text-gray-500 dark:text-gray-400">Carregando...</p>
             ) : stores.length === 0 ? (
-              <p className="text-gray-500">Nenhum estabelecimento cadastrado.</p>
+              <p className="text-gray-500 dark:text-gray-400">Nenhum estabelecimento cadastrado.</p>
             ) : (
               <div className="space-y-3">
                 {stores.map((store) => (
@@ -65,7 +65,7 @@ export default function EstabelecimentosPage() {
                   >
                     <div>
                       <p className="font-medium">{store.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {store.city && store.state
                           ? `${store.city}, ${store.state}`
                           : store.address || "Endereço não informado"}

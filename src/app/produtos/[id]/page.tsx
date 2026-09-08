@@ -51,7 +51,7 @@ export default function ProdutoPage() {
   }, [params.id]);
 
   if (loading) {
-    return <div className="text-center text-gray-500">Carregando...</div>;
+    return <div className="text-center text-gray-500 dark:text-gray-400">Carregando...</div>;
   }
 
   if (error) {
@@ -59,7 +59,7 @@ export default function ProdutoPage() {
   }
 
   if (!product) {
-    return <div className="text-center text-gray-500">Produto não encontrado</div>;
+    return <div className="text-center text-gray-500 dark:text-gray-400">Produto não encontrado</div>;
   }
 
   return (
@@ -68,12 +68,12 @@ export default function ProdutoPage() {
         <h1 className="text-3xl font-bold">{product.name}</h1>
         <div className="mt-2 flex gap-2">
           {product.eanCode && (
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
+            <span className="rounded-full bg-gray-100 dark:bg-neutral-800 px-3 py-1 text-sm text-gray-600 dark:text-gray-400">
               EAN: {product.eanCode}
             </span>
           )}
           {product.category && (
-            <span className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-600">
+            <span className="rounded-full bg-blue-100 dark:bg-blue-900 px-3 py-1 text-sm text-blue-600 dark:text-blue-400">
               {product.category.name}
             </span>
           )}

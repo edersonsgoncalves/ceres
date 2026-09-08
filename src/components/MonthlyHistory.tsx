@@ -18,7 +18,7 @@ export function MonthlyHistory({ data }: MonthlyHistoryProps) {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-gray-500">
+      <div className="flex h-64 items-center justify-center text-gray-500 dark:text-gray-400">
         Nenhum dado disponivel
       </div>
     );
@@ -38,7 +38,7 @@ export function MonthlyHistory({ data }: MonthlyHistoryProps) {
               onClick={() => setExpanded(expanded === item.month ? null : item.month)}
               className="flex flex-1 flex-col items-center gap-1 cursor-pointer hover:opacity-80"
             >
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 R$ {item.total.toFixed(0)}
               </div>
               <div
@@ -47,7 +47,7 @@ export function MonthlyHistory({ data }: MonthlyHistoryProps) {
               />
               <div className="text-center text-xs">
                 <p className="font-medium">{item.month}</p>
-                <p className="text-gray-500">{item.count} compras</p>
+                <p className="text-gray-500 dark:text-gray-400">{item.count} compras</p>
               </div>
             </button>
           );
@@ -55,12 +55,12 @@ export function MonthlyHistory({ data }: MonthlyHistoryProps) {
       </div>
 
       {expanded && data.find((d) => d.month === expanded)?.invoices && (
-        <div className="border rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto">
+        <div className="border rounded-lg p-3 bg-gray-50 dark:bg-neutral-950 max-h-48 overflow-y-auto">
           <p className="text-sm font-semibold mb-2">{expanded}</p>
           {data.find((d) => d.month === expanded)!.invoices!.map((inv) => (
             <div key={inv.id} className="flex justify-between text-sm py-1 border-b last:border-0">
               <span>{inv.storeName}</span>
-              <span className="text-gray-500">R$ {inv.total.toFixed(2)}</span>
+              <span className="text-gray-500 dark:text-gray-400">R$ {inv.total.toFixed(2)}</span>
             </div>
           ))}
         </div>

@@ -65,14 +65,14 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-gray-500">ou selecione manualmente</span>
+          <span className="bg-white dark:bg-neutral-900 px-2 text-gray-500 dark:text-gray-400">ou selecione manualmente</span>
         </div>
       </div>
 
       <form onSubmit={handleManualSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Cidade</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Cidade</label>
             <Input
               type="text"
               value={city}
@@ -81,7 +81,7 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Estado</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado</label>
             <Input
               type="text"
               value={state}

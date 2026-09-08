@@ -56,7 +56,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return <div className="text-center text-gray-500">Carregando...</div>;
+    return <div className="text-center text-gray-500 dark:text-gray-400">Carregando...</div>;
   }
 
   if (error) {
@@ -64,20 +64,20 @@ export default function DashboardPage() {
   }
 
   if (!data) {
-    return <div className="text-center text-gray-500">Nenhum dado disponível</div>;
+    return <div className="text-center text-gray-500 dark:text-gray-400">Nenhum dado disponível</div>;
   }
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-gray-500">Acompanhe seus gastos com alimentos</p>
+        <p className="text-gray-500 dark:text-gray-400">Acompanhe seus gastos com alimentos</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500">Total Gasto</CardTitle>
+            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Total Gasto</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
@@ -88,7 +88,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500">Notas Fiscais</CardTitle>
+            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Notas Fiscais</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{data.summary.totalInvoices}</p>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500">Ticket Médio</CardTitle>
+            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Ticket Médio</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
@@ -108,7 +108,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500">Produtos Únicos</CardTitle>
+            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Produtos Únicos</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{data.summary.uniqueProducts}</p>

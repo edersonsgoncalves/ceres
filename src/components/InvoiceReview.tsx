@@ -94,17 +94,17 @@ export function InvoiceReview({
           <CardTitle className="flex items-center gap-3">
             Revisao da Nota Fiscal
             {source === "qr_code" && (
-              <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+              <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-200">
                 QR Code
               </span>
             )}
             {source === "ocr" && (
-              <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+              <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-200">
                 OCR
               </span>
             )}
           </CardTitle>
-          <div className="flex gap-4 text-sm text-gray-500">
+          <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
             <span>Estabelecimento: {storeName}</span>
             {date && <span>Data: {date}</span>}
           </div>
@@ -113,7 +113,7 @@ export function InvoiceReview({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b bg-gray-50">
+                <tr className="border-b bg-gray-50 dark:bg-neutral-950">
                   <th className="p-2 text-left text-sm font-medium">Cód. Barras</th>
                   <th className="p-2 text-left text-sm font-medium">Produto</th>
                   <th className="p-2 text-left text-sm font-medium">Qtd</th>
@@ -130,7 +130,7 @@ export function InvoiceReview({
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 bg-gray-50 font-bold">
+                <tr className="border-t-2 bg-gray-50 dark:bg-neutral-950 font-bold">
                   <td colSpan={5} className="p-2 text-right text-sm">Total:</td>
                   <td className="p-2 text-sm">R$ {calculatedTotal.toFixed(2)}</td>
                   <td colSpan={2}></td>
@@ -139,7 +139,7 @@ export function InvoiceReview({
             </table>
           </div>
           {calculatedTotal !== totalNumber && (
-            <p className="mt-2 text-sm text-amber-600">
+            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
               Total original: R$ {totalNumber.toFixed(2)} | Total calculado: R$ {calculatedTotal.toFixed(2)}
             </p>
           )}

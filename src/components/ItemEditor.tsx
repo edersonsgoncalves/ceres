@@ -37,7 +37,7 @@ function PriceInput({ value, onChange }: { value: number; onChange: (v: number) 
 
   return (
     <div className="relative">
-      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">R$</span>
+      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">R$</span>
       <Input
         value={display}
         onChange={handleChange}
