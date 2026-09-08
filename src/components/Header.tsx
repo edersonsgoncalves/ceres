@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -18,6 +19,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -34,6 +36,7 @@ export function Header() {
           </span>
         </Link>
 
+        {/* Desktop nav */}
         <nav className="hidden md:flex items-center space-x-1">
           {navItems.map((item) => (
             <Link key={item.href} href={item.href}>
@@ -66,11 +69,50 @@ export function Header() {
               )}
             </span>
           </Button>
+
+          {/* Hamburger - mobile only */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Menu"
+          >
+            <span className="h-5 w-5">
+              {mobileOpen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+              )}
+            </span>
+          </Button>
+
           <Button variant="ghost" size="sm" onClick={handleLogout}>
             Sair
           </Button>
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <nav className="md:hidden border-t border-border bg-background px-4 py-2 space-y-1">
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+              <Button
+                variant={pathname === item.href ? "default" : "ghost"}
+                size="sm"
+                className="w-full justify-start"
+              >
+                {item.label}
+              </Button>
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }
