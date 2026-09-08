@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
     for (const cookie of cookieStore.getAll()) {
-      response.cookies.set(cookie.name, cookie.value, cookie.options as any);
+      response.cookies.set(cookie.name, cookie.value);
     }
 
     return response;
