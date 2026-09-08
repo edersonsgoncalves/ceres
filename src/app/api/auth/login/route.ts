@@ -1,7 +1,30 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@supabase/ssr";
 
 export async function POST(request: Request) {
+  let supabaseResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
   try {
     const body = await request.json();
     const { email, password } = body;
@@ -12,8 +35,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    const supabase = await createClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -27,9 +48,12 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({
-      user: { id: data.user.id, email: data.user.email },
-    });
+    const response = NextResponse.json(
+      { user: { id: data.user.id, email: data.user.email } },
+      { request }
+    );
+    response.cookies.setAll(supabaseResponse.cookies.getAll());
+    return response;
   } catch (error) {
     console.error("Erro no login:", error);
     return NextResponse.json(

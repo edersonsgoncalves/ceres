@@ -32,6 +32,14 @@ export function LoginForm() {
       }
 
       router.push("/");
+
+      // Detectar redirect loop: se ainda estamos em /login apos 2s, as cookies falharam
+      setTimeout(() => {
+        if (window.location.pathname === "/login") {
+          setError("Falha ao autenticar. Tente novamente.");
+          setLoading(false);
+        }
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao fazer login");
     } finally {
