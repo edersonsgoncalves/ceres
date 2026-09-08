@@ -58,21 +58,32 @@ export async function POST(request: Request) {
     }
 
     const formData = await request.formData();
-    const imageFile = formData.get("image") as File | null;
+    const imageFiles = formData.getAll("images") as File[];
 
-    if (!imageFile) {
+    if (!imageFiles || imageFiles.length === 0) {
       return NextResponse.json(
-        { error: "Imagem é obrigatória" },
+        { error: "Pelo menos uma imagem e obrigatoria" },
         { status: 400 }
       );
     }
 
-    const bytes = await imageFile.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString("base64");
-    const dataUrl = `data:${imageFile.type};base64,${base64}`;
+    const images: string[] = [];
+    for (const imageFile of imageFiles) {
+      if (!imageFile.type.startsWith("image/")) continue;
+      const bytes = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const base64 = buffer.toString("base64");
+      images.push(`data:${imageFile.type};base64,${base64}`);
+    }
 
-    const invoiceData = await extractInvoiceData(dataUrl);
+    if (images.length === 0) {
+      return NextResponse.json(
+        { error: "Nenhuma imagem valida encontrada" },
+        { status: 400 }
+      );
+    }
+
+    const invoiceData = await extractInvoiceData(images);
 
     const storeName = invoiceData.storeName || "Loja não informada";
     const storeCnpj = invoiceData.cnpj || null;

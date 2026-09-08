@@ -39,9 +39,10 @@ type Mode = "choose" | "upload" | "qrcode" | "accessKey" | "import";
 
 export function InvoiceUpload() {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [storeName, setStoreName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -57,28 +58,49 @@ export function InvoiceUpload() {
     itemsCount: number;
   } | null>(null);
 
-  const handleFileChange = useCallback((selectedFile: File) => {
-    if (!selectedFile.type.startsWith("image/")) {
-      setError("Por favor, selecione uma imagem");
-      return;
+  const MAX_FILES = 3;
+
+  const handleFilesSelected = useCallback((selectedFiles: FileList | null) => {
+    if (!selectedFiles) return;
+    const newFiles: File[] = [];
+    for (let i = 0; i < selectedFiles.length && files.length + newFiles.length < MAX_FILES; i++) {
+      const f = selectedFiles[i];
+      if (!f.type.startsWith("image/")) continue;
+      if (f.size > 10 * 1024 * 1024) {
+        setError(`${f.name}: imagem deve ter no maximo 10MB`);
+        continue;
+      }
+      newFiles.push(f);
     }
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      setError("A imagem deve ter no maximo 10MB");
-      return;
-    }
-    setFile(selectedFile);
+    if (newFiles.length === 0) return;
+
     setError("");
-    const reader = new FileReader();
-    reader.onload = (e) => setPreviewUrl(e.target?.result as string);
-    reader.readAsDataURL(selectedFile);
+    const updatedFiles = [...files, ...newFiles].slice(0, MAX_FILES);
+    setFiles(updatedFiles);
+
+    const newUrls = newFiles.map((f) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(f);
+      });
+    });
+
+    Promise.all(newUrls).then((urls) => {
+      setPreviewUrls((prev) => [...prev, ...urls].slice(0, MAX_FILES));
+    });
+  }, [files]);
+
+  const handleRemoveFile = useCallback((index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) handleFileChange(droppedFile);
-  }, [handleFileChange]);
+    handleFilesSelected(e.dataTransfer.files);
+  }, [handleFilesSelected]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -92,12 +114,14 @@ export function InvoiceUpload() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) { setError("Selecione uma imagem da nota fiscal"); return; }
+    if (files.length === 0) { setError("Selecione pelo menos uma imagem"); return; }
     setLoading(true);
     setError("");
     try {
       const formData = new FormData();
-      formData.append("image", file);
+      for (const f of files) {
+        formData.append("images", f);
+      }
       if (storeName) formData.append("storeName", storeName);
       const response = await fetch("/api/invoices", { method: "POST", body: formData });
       const data = await response.json();
@@ -220,8 +244,8 @@ export function InvoiceUpload() {
   const resetState = () => {
     setMode("choose");
     setError("");
-    setFile(null);
-    setPreviewUrl(null);
+    setFiles([]);
+    setPreviewUrls([]);
     setAccessKey("");
     setImportJson("");
     setImportPreview(null);
@@ -249,9 +273,10 @@ export function InvoiceUpload() {
           </Button>
           <Button onClick={() => setMode("upload")} className="w-full h-14 text-base" variant="outline">
             <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Enviar Foto
+            Tirar Foto / Enviar
           </Button>
           <Button onClick={() => setMode("import")} className="w-full h-14 text-base" variant="outline">
             <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,7 +400,7 @@ export function InvoiceUpload() {
     <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle>Nova Nota Fiscal</CardTitle>
-        <CardDescription>Envie uma foto da nota fiscal para extrair os itens automaticamente</CardDescription>
+        <CardDescription>Tire fotos da nota fiscal para extrair os itens automaticamente (max. {MAX_FILES} imagens)</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -383,28 +408,76 @@ export function InvoiceUpload() {
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nome do estabelecimento (opcional)</label>
             <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="Ex: Supermercado XYZ" className="mt-1" />
           </div>
-          <div
-            className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50 dark:bg-blue-950" : "border-gray-300 dark:border-neutral-600 hover:border-gray-400 dark:hover:border-neutral-500"}`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-          >
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f); }} />
-            <div className="space-y-4">
-              <div className="text-gray-500 dark:text-gray-400">
-                <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-gray-700 dark:text-gray-300">Arraste e solte a imagem aqui, ou{" "}<button type="button" onClick={() => fileInputRef.current?.click()} className="text-blue-600 dark:text-blue-400 hover:underline">clique para selecionar</button></p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">PNG, JPG ou WEBP (max. 10MB)</p>
-              </div>
-            </div>
+
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            multiple
+            onChange={(e) => { handleFilesSelected(e.target.files); if (cameraInputRef.current) cameraInputRef.current.value = ""; }}
+          />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            multiple
+            onChange={(e) => { handleFilesSelected(e.target.files); if (galleryInputRef.current) galleryInputRef.current.value = ""; }}
+          />
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="default"
+              className="flex-1 h-12"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={files.length >= MAX_FILES}
+            >
+              <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Tirar Foto
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 h-12"
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={files.length >= MAX_FILES}
+            >
+              <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Galeria
+            </Button>
           </div>
-          <ImagePreview file={file} previewUrl={previewUrl} />
+
+          {files.length > 0 && files.length < MAX_FILES && (
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+              + {MAX_FILES - files.length} {MAX_FILES - files.length === 1 ? "foto restante" : "fotos restantes"} (para melhor detalhamento)
+            </p>
+          )}
+
+          {files.length > 0 && (
+            <div
+              className={`rounded-lg border-2 border-dashed p-4 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50 dark:bg-blue-950" : "border-gray-300 dark:border-neutral-600"}`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              <p className="text-sm text-gray-500 dark:text-gray-400">Arraste mais imagens aqui ou clique nos botoes acima</p>
+            </div>
+          )}
+
+          <ImagePreview files={files} previewUrls={previewUrls} onRemove={handleRemoveFile} />
+
           {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading || !file}>{loading ? "Processando..." : "Processar Nota Fiscal"}</Button>
+          <Button type="submit" className="w-full" disabled={loading || files.length === 0}>
+            {loading ? "Processando..." : `Processar ${files.length > 0 ? `${files.length} ${files.length === 1 ? "imagem" : "imagens"}` : "Nota Fiscal"}`}
+          </Button>
           <Button type="button" variant="ghost" className="w-full" onClick={resetState}>Voltar</Button>
         </form>
       </CardContent>
