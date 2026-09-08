@@ -27,7 +27,7 @@ async function callOllama(baseUrl: string, model: string, prompt: string, images
 }
 
 async function callGemini(apiKey: string, prompt: string, images: string[]): Promise<string> {
-  const model = process.env.OCR_MODEL || "gemini-2.0-flash";
+  const model = process.env.OCR_MODEL || "gemini-3.8-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const parts: Array<{ text: string } | { inline_data: { mime_type: string; data: string } }> = [
