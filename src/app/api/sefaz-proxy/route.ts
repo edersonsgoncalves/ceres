@@ -48,6 +48,7 @@ export async function POST(request: Request) {
 
     const html = await response.text();
     console.log("[SEFAZ-Proxy] Response length:", html.length);
+    console.log("[SEFAZ-Proxy] HTML snippet:", html.substring(0, 500));
 
     return NextResponse.json({ html });
   } catch (error) {
