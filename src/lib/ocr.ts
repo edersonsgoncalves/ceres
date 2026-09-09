@@ -5,6 +5,20 @@ function cleanBase64(imageBase64: string): string {
   return imageBase64.startsWith("data:") ? imageBase64.split(",")[1] : imageBase64;
 }
 
+async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 2000): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.warn(`Tentativa ${attempt + 1} falhou, retry em ${Math.round(delay)}ms...`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 async function callOllama(baseUrl: string, model: string, prompt: string, images: string[]): Promise<string> {
   const base64Images = images.map(cleanBase64);
   const response = await fetch(`${baseUrl}/api/chat`, {
@@ -37,21 +51,27 @@ async function callGemini(apiKey: string, prompt: string, images: string[]): Pro
     parts.push({ inline_data: { mime_type: "image/jpeg", data: cleanBase64(img) } });
   }
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: { maxOutputTokens: 4096, temperature: 0.1 },
-    }),
+  return retryWithBackoff(async () => {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.1 },
+      }),
+    });
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Erro na API Gemini:", errorData);
+      const parsed = JSON.parse(errorData).error;
+      if (parsed?.code === 503 || parsed?.code === 429) {
+        throw new Error(`Gemini ${parsed.code}: ${parsed.message}`);
+      }
+      throw new Error("Erro ao processar imagem na API Gemini");
+    }
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
   });
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error("Erro na API Gemini:", errorData);
-    throw new Error("Erro ao processar imagem na API Gemini");
-  }
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 async function callOpenAICompatible(baseUrl: string, apiKey: string, model: string, prompt: string, images: string[]): Promise<string> {
