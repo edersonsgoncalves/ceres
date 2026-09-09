@@ -91,8 +91,14 @@ async function postForm(
   });
 }
 
-function extractCookies(...responses: Response[]): string {
+function extractCookies(existingCookies: string, ...responses: Response[]): string {
   const cookieMap = new Map<string, string>();
+
+  for (const pair of existingCookies.split(";")) {
+    const [name, ...rest] = pair.split("=");
+    if (name && rest.length) cookieMap.set(name.trim(), rest.join("=").trim());
+  }
+
   for (const res of responses) {
     const setCookie = res.headers.get("set-cookie");
     if (setCookie) {
@@ -124,7 +130,7 @@ export async function POST(request: Request) {
     }
 
     let html = await initialResponse.text();
-    let cookies = extractCookies(initialResponse);
+    let cookies = extractCookies("", initialResponse);
     const baseUrl = new URL(url).origin;
 
     console.log("[SEFAZ] Step 1: Response length:", html.length);
@@ -159,11 +165,13 @@ export async function POST(request: Request) {
       if (detailBtn) {
         console.log("[SEFAZ] Step 3: Clicking detail button:", detailBtn.name);
         const postResponse2 = await postForm(baseUrl, formInfo2.action, formInfo2.viewState, detailBtn.name, cookies);
+        cookies = extractCookies(cookies, postResponse2);
         html = await postResponse2.text();
         console.log("[SEFAZ] Step 3: Response length:", html.length);
       } else {
         console.log("[SEFAZ] Step 3: Submitting form again (no detail button found)");
         const postResponse2 = await postForm(baseUrl, formInfo2.action, formInfo2.viewState, submitBtn.name, cookies);
+        cookies = extractCookies(cookies, postResponse2);
         html = await postResponse2.text();
         console.log("[SEFAZ] Step 3: Response length:", html.length);
       }
