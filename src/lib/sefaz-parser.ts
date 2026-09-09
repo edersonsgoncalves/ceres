@@ -214,18 +214,17 @@ function commonPrefixLength(a: string, b: string): number {
 }
 
 export async function fetchSefazData(qrUrl: string): Promise<InvoiceData> {
-  const response = await fetch(qrUrl, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-    },
+  const proxyResponse = await fetch("/api/sefaz-proxy", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: qrUrl }),
   });
 
-  if (!response.ok) {
-    throw new Error(`Erro ao acessar SEFAZ: ${response.status}`);
+  if (!proxyResponse.ok) {
+    const errData = await proxyResponse.json().catch(() => ({}));
+    throw new Error(errData.error || `Erro ao acessar SEFAZ: ${proxyResponse.status}`);
   }
 
-  const html = await response.text();
+  const { html } = await proxyResponse.json();
   return parseSefazHtml(html);
 }
