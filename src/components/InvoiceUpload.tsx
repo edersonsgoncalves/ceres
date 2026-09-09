@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImagePreview } from "@/components/ImagePreview";
 import { QRCodeScanner } from "@/components/QRCodeScanner";
+import { QRCodeClientFetch } from "@/components/QRCodeClientFetch";
 
 const EXAMPLE_JSON = `{
   "store": {
@@ -35,7 +36,7 @@ const EXAMPLE_JSON = `{
   ]
 }`;
 
-type Mode = "choose" | "upload" | "qrcode" | "accessKey" | "import";
+type Mode = "choose" | "upload" | "qrcode" | "qrcode-client" | "accessKey" | "import";
 
 export function InvoiceUpload() {
   const router = useRouter();
@@ -263,7 +264,13 @@ export function InvoiceUpload() {
             <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
             </svg>
-            Ler QR Code
+            QR Code (Servidor)
+          </Button>
+          <Button onClick={() => setMode("qrcode-client")} className="w-full h-14 text-base" variant="default">
+            <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            QR Code Direto
           </Button>
           <Button onClick={() => setMode("accessKey")} className="w-full h-14 text-base" variant="outline">
             <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -293,13 +300,29 @@ export function InvoiceUpload() {
     return (
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle>Ler QR Code</CardTitle>
-          <CardDescription>Aponte a camera para o QR Code da nota fiscal</CardDescription>
+          <CardTitle>QR Code (Servidor)</CardTitle>
+          <CardDescription>Aponte a camera para o QR Code — busca via servidor</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {loading && <p className="text-blue-600 dark:text-blue-400 text-sm">Buscando dados da nota fiscal...</p>}
           {error && <p className="text-red-500 text-sm">{error}</p>}
           {!loading && <QRCodeScanner onUrlDetected={handleQrUrlDetected} onError={setError} />}
+          <Button variant="ghost" onClick={resetState}>Voltar</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (mode === "qrcode-client") {
+    return (
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>QR Code Direto</CardTitle>
+          <CardDescription>Escaneie o QR Code — os dados sao buscados direto da SEFAZ pelo celular</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <QRCodeClientFetch onError={setError} />
           <Button variant="ghost" onClick={resetState}>Voltar</Button>
         </CardContent>
       </Card>
