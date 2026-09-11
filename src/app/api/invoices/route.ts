@@ -4,6 +4,14 @@ import { getUser } from "@/lib/auth";
 import { extractInvoiceData } from "@/lib/ocr";
 import { resolveProductName, computeEanPrefixFromBarcode } from "@/lib/invoice-items";
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "50mb",
+    },
+  },
+};
+
 function serializeInvoice(invoice: Record<string, unknown>) {
   const store = invoice.store as Record<string, unknown> | undefined;
   return {
