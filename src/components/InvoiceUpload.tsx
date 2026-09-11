@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ImagePreview } from "@/components/ImagePreview";
 import { QRCodeScanner } from "@/components/QRCodeScanner";
 import { QRCodeClientFetch } from "@/components/QRCodeClientFetch";
+import { compressImages } from "@/lib/image-utils";
 
 const EXAMPLE_JSON = `{
   "store": {
@@ -119,8 +120,9 @@ export function InvoiceUpload() {
     setLoading(true);
     setError("");
     try {
+      const compressed = await compressImages(files);
       const formData = new FormData();
-      for (const f of files) {
+      for (const f of compressed) {
         formData.append("images", f);
       }
       if (storeName) formData.append("storeName", storeName);
