@@ -9,7 +9,7 @@ A imagem pode estar:
 - Cortada nas bordas
 - Comdobraduras ou amassados no papel
 
-SUA TAREFA: Extrair TODOS os dados possiveis da nota fiscal e retornar APENAS um JSON valido (sem markdown, sem codigo, sem explicacoes).
+SUA TAREFA: Extrair TODOS os dados possiveis da nota fiscal.
 
 ESTRUTURA DO JSON:
 {

@@ -57,7 +57,11 @@ async function callGemini(apiKey: string, prompt: string, images: string[]): Pro
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts }],
-        generationConfig: { maxOutputTokens: 4096, temperature: 0.1 },
+        generationConfig: {
+          maxOutputTokens: 8192,
+          temperature: 0.1,
+          responseMimeType: "application/json",
+        },
       }),
     });
     if (!response.ok) {
