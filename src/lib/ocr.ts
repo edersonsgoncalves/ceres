@@ -58,7 +58,7 @@ async function callGemini(apiKey: string, prompt: string, images: string[]): Pro
       body: JSON.stringify({
         contents: [{ parts }],
         generationConfig: {
-          maxOutputTokens: 8192,
+          maxOutputTokens: 16384,
           temperature: 0.1,
           responseMimeType: "application/json",
         },
@@ -115,6 +115,27 @@ function parseBrazilianNumber(str: string): number {
   return parseFloat(s) || 0;
 }
 
+function tryRepairJson(text: string): string {
+  let s = text.trim();
+
+  const openBrackets = (s.match(/\[/g) || []).length;
+  const closeBrackets = (s.match(/\]/g) || []).length;
+  const openBraces = (s.match(/\{/g) || []).length;
+  const closeBraces = (s.match(/\}/g) || []).length;
+
+  if (openBrackets > closeBrackets) {
+    for (let i = 0; i < openBrackets - closeBrackets; i++) s += "]";
+  }
+  if (openBraces > closeBraces) {
+    for (let i = 0; i < openBraces - closeBraces; i++) s += "}";
+  }
+
+  const lastChar = s[s.length - 1];
+  if (lastChar === ",") s = s.slice(0, -1);
+
+  return s;
+}
+
 function parseInvoiceJson(rawText: string): InvoiceData {
   let text = rawText;
 
@@ -122,8 +143,9 @@ function parseInvoiceJson(rawText: string): InvoiceData {
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
+    let jsonStr = jsonMatch[0];
     try {
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonStr);
       const items: InvoiceData["items"] = (parsed.itens || parsed.items || []).map(
         (item: Record<string, unknown>) => ({
           productName: String(item.nome || item.productName || ""),
@@ -145,7 +167,33 @@ function parseInvoiceJson(rawText: string): InvoiceData {
         paymentMethod: parsed.formaPagamento || parsed.paymentMethod || undefined,
       };
     } catch {
-      console.warn("JSON encontrado mas invalido, tentando fallback de texto");
+      console.warn("JSON invalido, tentando reparar...");
+      try {
+        jsonStr = tryRepairJson(jsonStr);
+        const parsed = JSON.parse(jsonStr);
+        const items: InvoiceData["items"] = (parsed.itens || parsed.items || []).map(
+          (item: Record<string, unknown>) => ({
+            productName: String(item.nome || item.productName || ""),
+            name: String(item.nome || item.name || ""),
+            quantity: Number(item.qtd || item.quantity || 1),
+            unit: String(item.unidade || item.unit || "un").toLowerCase(),
+            unitPrice: Number(item.precoUnitario || item.unitPrice || 0),
+            totalPrice: Number(item.precoTotal || item.totalPrice || 0),
+            category: item.categoria || item.category || undefined,
+            barcode: item.codigoBarras || item.barcode || undefined,
+          })
+        );
+        return {
+          storeName: String(parsed.storeName || "Loja nao informada"),
+          cnpj: parsed.cnpj ? String(parsed.cnpj).replace(/\D/g, "") : undefined,
+          date: parsed.data || parsed.date || undefined,
+          total: Number(parsed.total || 0),
+          items,
+          paymentMethod: parsed.formaPagamento || parsed.paymentMethod || undefined,
+        };
+      } catch {
+        console.warn("Reparo falhou, usando fallback de texto");
+      }
     }
   }
 
@@ -238,7 +286,7 @@ export async function extractInvoiceData(images: string[], extraInstructions?: s
 
   if (!content) throw new Error("Resposta vazia da API de OCR");
 
-  console.log("=== OCR Response (first 500 chars) ===");
+  console.log(`=== OCR Response (${content.length} chars, ends: "${content.slice(-20)}") ===`);
   console.log(content.substring(0, 500));
   console.log("=== End OCR Response ===");
 
