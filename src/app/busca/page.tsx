@@ -27,39 +27,73 @@ interface EanGroup {
   };
 }
 
+interface CategoryGroup {
+  category: string;
+  products: Product[];
+  totalPurchases: number;
+  totalSpent: number;
+}
+
 export default function BuscaPage() {
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [eanGroups, setEanGroups] = useState<EanGroup[]>([]);
+  const [categoryGroups, setCategoryGroups] = useState<CategoryGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [groupByEan, setGroupByEan] = useState(true);
+  const [viewMode, setViewMode] = useState<"ean" | "category" | "flat">("category");
 
   useEffect(() => {
-    fetchProducts(undefined, true);
+    fetchProducts(undefined, "category");
   }, []);
 
-  const fetchProducts = async (search?: string, useGroupBy?: boolean) => {
-    const shouldGroup = useGroupBy ?? groupByEan;
+  const fetchProducts = async (search?: string, mode?: string) => {
+    const shouldGroup = mode ?? viewMode;
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set("search", search);
-    if (shouldGroup) params.set("groupBy", "ean");
+    if (shouldGroup === "ean") params.set("groupBy", "ean");
 
     try {
       const res = await fetch(`/api/products?${params}`);
       const data = await res.json();
-      if (shouldGroup) {
+      if (shouldGroup === "ean") {
         setEanGroups(data.groups || []);
         setProducts([]);
+        setCategoryGroups([]);
+      } else if (shouldGroup === "category") {
+        const allProducts: Product[] = data.products || [];
+        const catMap = new Map<string, CategoryGroup>();
+        for (const p of allProducts) {
+          const cat = p.category || "Sem categoria";
+          const existing = catMap.get(cat);
+          if (existing) {
+            existing.products.push(p);
+            existing.totalPurchases += p.purchaseCount;
+            existing.totalSpent += p.maxPrice * p.purchaseCount;
+          } else {
+            catMap.set(cat, {
+              category: cat,
+              products: [p],
+              totalPurchases: p.purchaseCount,
+              totalSpent: p.maxPrice * p.purchaseCount,
+            });
+          }
+        }
+        const groups = Array.from(catMap.values()).sort((a, b) => b.totalPurchases - a.totalPurchases);
+        setCategoryGroups(groups);
+        setProducts([]);
+        setEanGroups([]);
       } else {
         setProducts(data.products || []);
         setEanGroups([]);
+        setCategoryGroups([]);
       }
     } catch {
       setProducts([]);
       setEanGroups([]);
+      setCategoryGroups([]);
     } finally {
       setLoading(false);
     }
@@ -73,13 +107,12 @@ export default function BuscaPage() {
     setSearching(false);
   };
 
-  const handleGroupByEanToggle = async () => {
-    const newValue = !groupByEan;
-    setGroupByEan(newValue);
+  const handleModeChange = async (newMode: "ean" | "category" | "flat") => {
+    setViewMode(newMode);
     if (hasSearched) {
-      await fetchProducts(query, newValue);
+      await fetchProducts(query, newMode);
     } else {
-      await fetchProducts(undefined, newValue);
+      await fetchProducts(undefined, newMode);
     }
   };
 
@@ -103,23 +136,89 @@ export default function BuscaPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={groupByEan}
-            onChange={handleGroupByEanToggle}
-            className="rounded border-gray-300 dark:border-neutral-600"
-          />
-          <span className="text-sm text-gray-600 dark:text-gray-400">Agrupar por EAN</span>
-        </label>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => handleModeChange("category")}
+          className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+            viewMode === "category"
+              ? "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200"
+              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
+          }`}
+        >
+          Por Categoria
+        </button>
+        <button
+          onClick={() => handleModeChange("ean")}
+          className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+            viewMode === "ean"
+              ? "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200"
+              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
+          }`}
+        >
+          Por EAN
+        </button>
+        <button
+          onClick={() => handleModeChange("flat")}
+          className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+            viewMode === "flat"
+              ? "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200"
+              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
+          }`}
+        >
+          Lista
+        </button>
       </div>
 
       {loading ? (
         <div className="text-center text-gray-500 dark:text-gray-400 py-8">Carregando...</div>
       ) : (
         <>
-          {groupByEan && eanGroups.length > 0 && (
+          {viewMode === "category" && categoryGroups.length > 0 && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold">
+                {hasSearched ? "Resultados" : "Produtos Recentes"} ({categoryGroups.length} categorias)
+              </h2>
+              {categoryGroups.map((group) => (
+                <div key={group.category}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                      {group.category}
+                    </h3>
+                    <span className="text-xs bg-gray-100 dark:bg-neutral-800 px-2 py-0.5 rounded">
+                      {group.products.length} {group.products.length === 1 ? "produto" : "produtos"}
+                    </span>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {group.products.map((product) => (
+                      <Link
+                        key={product.productName}
+                        href={`/produtos/${encodeURIComponent(product.productName)}/revisao`}
+                        className="flex items-center justify-between rounded-lg border p-3 hover:shadow-md transition-shadow"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{product.productName}</p>
+                          <div className="flex gap-2 text-xs text-gray-400 dark:text-gray-500">
+                            <span>{product.purchaseCount}x</span>
+                            {product.lastPurchase && (
+                              <span>Ult: {new Date(product.lastPurchase).toLocaleDateString("pt-BR")}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right text-sm ml-3 shrink-0">
+                          <div className="flex gap-1.5">
+                            <span className="text-green-600 dark:text-green-400">R$ {product.minPrice.toFixed(2)}</span>
+                            <span className="text-red-600 dark:text-red-400">R$ {product.maxPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {viewMode === "ean" && eanGroups.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold mb-4">
                 {hasSearched ? "Resultados" : "Produtos Recentes"} ({eanGroups.length} grupos)
@@ -171,7 +270,7 @@ export default function BuscaPage() {
             </div>
           )}
 
-          {!groupByEan && products.length > 0 && (
+          {viewMode === "flat" && products.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold mb-4">
                 {hasSearched ? "Resultados" : "Produtos Recentes"} ({products.length})
@@ -212,7 +311,7 @@ export default function BuscaPage() {
             </div>
           )}
 
-          {products.length === 0 && eanGroups.length === 0 && (
+          {products.length === 0 && eanGroups.length === 0 && categoryGroups.length === 0 && (
             <div className="text-center text-gray-500 dark:text-gray-400 py-8">
               Nenhum produto encontrado
             </div>
