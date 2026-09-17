@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 
     for (const item of invoiceData.items) {
       const eanPrefix = computeEanPrefixFromBarcode(item.barcode);
-      const productName = await resolveProductName(eanPrefix, item.name);
+      const productName = resolveProductName(item.name);
 
       await prisma.invoiceItem.create({
         data: {

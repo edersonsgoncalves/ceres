@@ -89,7 +89,7 @@ export async function POST(request: Request) {
 
     for (const item of body.items) {
       const eanPrefix = computeEanPrefixFromBarcode(item.barcode);
-      const productName = await resolveProductName(eanPrefix, item.productName);
+      const productName = resolveProductName(item.productName);
       const totalPrice = item.totalPrice ?? item.quantity * item.unitPrice;
 
       await prisma.invoiceItem.create({
