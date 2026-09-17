@@ -42,10 +42,10 @@ export default function BuscaPage() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [viewMode, setViewMode] = useState<"ean" | "category" | "flat">("category");
+  const [viewMode, setViewMode] = useState<"ean" | "category" | "flat">("ean");
 
   useEffect(() => {
-    fetchProducts(undefined, "category");
+    fetchProducts(undefined, "ean");
   }, []);
 
   const fetchProducts = async (search?: string, mode?: string) => {
@@ -116,6 +116,17 @@ export default function BuscaPage() {
     }
   };
 
+  const groupProductsByCategory = (products: Product[]): Map<string, Product[]> => {
+    const map = new Map<string, Product[]>();
+    for (const p of products) {
+      const cat = p.category || "Sem categoria";
+      const existing = map.get(cat);
+      if (existing) existing.push(p);
+      else map.set(cat, [p]);
+    }
+    return map;
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -138,16 +149,6 @@ export default function BuscaPage() {
 
       <div className="flex items-center gap-4">
         <button
-          onClick={() => handleModeChange("category")}
-          className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-            viewMode === "category"
-              ? "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200"
-              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
-          }`}
-        >
-          Por Categoria
-        </button>
-        <button
           onClick={() => handleModeChange("ean")}
           className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
             viewMode === "ean"
@@ -156,6 +157,16 @@ export default function BuscaPage() {
           }`}
         >
           Por EAN
+        </button>
+        <button
+          onClick={() => handleModeChange("category")}
+          className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+            viewMode === "category"
+              ? "bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200"
+              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800"
+          }`}
+        >
+          Por Categoria
         </button>
         <button
           onClick={() => handleModeChange("flat")}
@@ -173,6 +184,89 @@ export default function BuscaPage() {
         <div className="text-center text-gray-500 dark:text-gray-400 py-8">Carregando...</div>
       ) : (
         <>
+          {viewMode === "ean" && eanGroups.length > 0 && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold">
+                {hasSearched ? "Resultados" : "Produtos Recentes"} ({eanGroups.length} grupos EAN)
+              </h2>
+              {eanGroups.map((group) => {
+                const byCategory = groupProductsByCategory(group.products);
+                const categories = Array.from(byCategory.keys()).sort();
+                return (
+                  <div key={group.eanPrefix || group.groupName} className="rounded-lg border p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="min-w-0">
+                        <h3 className="font-medium truncate">{group.groupName}</h3>
+                        {group.eanPrefix && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 font-mono">EAN: {group.eanPrefix}*</p>
+                        )}
+                      </div>
+                      <span className="text-xs bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded whitespace-nowrap ml-2">
+                        {group.products.length} {group.products.length === 1 ? "variante" : "variantes"}
+                      </span>
+                    </div>
+
+                    {categories.length > 1 ? (
+                      <div className="space-y-3">
+                        {categories.map((cat) => (
+                          <div key={cat}>
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{cat}</p>
+                            <div className="space-y-1">
+                              {byCategory.get(cat)!.map((product) => (
+                                <Link
+                                  key={product.productName}
+                                  href={`/produtos/${encodeURIComponent(product.productName)}/revisao`}
+                                  className="flex items-center justify-between rounded p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium truncate">{product.productName}</p>
+                                  </div>
+                                  <div className="text-right text-sm ml-2 shrink-0">
+                                    <div className="flex gap-2">
+                                      <span className="text-green-600 dark:text-green-400">R$ {product.minPrice.toFixed(2)}</span>
+                                      <span className="text-red-600 dark:text-red-400">R$ {product.maxPrice.toFixed(2)}</span>
+                                    </div>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500">{product.purchaseCount}x</p>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {group.products.map((product) => (
+                          <Link
+                            key={product.productName}
+                            href={`/produtos/${encodeURIComponent(product.productName)}/revisao`}
+                            className="flex items-center justify-between rounded p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">{product.productName}</p>
+                            </div>
+                            <div className="text-right text-sm ml-2 shrink-0">
+                              <div className="flex gap-2">
+                                <span className="text-green-600 dark:text-green-400">R$ {product.minPrice.toFixed(2)}</span>
+                                <span className="text-red-600 dark:text-red-400">R$ {product.maxPrice.toFixed(2)}</span>
+                              </div>
+                              <p className="text-xs text-gray-400 dark:text-gray-500">{product.purchaseCount}x</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-2 pt-2 border-t flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>{group.stats.totalPurchases} compras</span>
+                      <span>R$ {group.stats.totalSpent.toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {viewMode === "category" && categoryGroups.length > 0 && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold">
@@ -215,58 +309,6 @@ export default function BuscaPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {viewMode === "ean" && eanGroups.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold mb-4">
-                {hasSearched ? "Resultados" : "Produtos Recentes"} ({eanGroups.length} grupos)
-              </h2>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {eanGroups.map((group) => (
-                  <div key={group.eanPrefix || group.groupName} className="rounded-lg border p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="min-w-0">
-                        <h3 className="font-medium truncate">{group.groupName}</h3>
-                        {group.eanPrefix && (
-                          <p className="text-xs text-gray-400 dark:text-gray-500 font-mono">EAN: {group.eanPrefix}*</p>
-                        )}
-                      </div>
-                      <span className="text-xs bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded whitespace-nowrap ml-2">
-                        {group.products.length} {group.products.length === 1 ? "variante" : "variantes"}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      {group.products.map((product) => (
-                        <Link
-                          key={product.productName}
-                          href={`/produtos/${encodeURIComponent(product.productName)}/revisao`}
-                          className="flex items-center justify-between rounded p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">{product.productName}</p>
-                            {product.category && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{product.category}</p>
-                            )}
-                          </div>
-                          <div className="text-right text-sm ml-2">
-                            <div className="flex gap-2">
-                              <span className="text-green-600 dark:text-green-400">R$ {product.minPrice.toFixed(2)}</span>
-                              <span className="text-red-600 dark:text-red-400">R$ {product.maxPrice.toFixed(2)}</span>
-                            </div>
-                            <p className="text-xs text-gray-400 dark:text-gray-500">{product.purchaseCount}x</p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                    <div className="mt-2 pt-2 border-t flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>{group.stats.totalPurchases} compras</span>
-                      <span>R$ {group.stats.totalSpent.toFixed(2)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
