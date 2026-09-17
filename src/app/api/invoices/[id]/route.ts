@@ -74,7 +74,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { items, totalAmount } = body;
+    const { items, totalAmount, storeId } = body;
 
     const existingInvoice = await prisma.invoice.findUnique({
       where: { id, userId: user.id },
@@ -82,9 +82,19 @@ export async function PUT(
 
     if (!existingInvoice) {
       return NextResponse.json(
-        { error: "Nota fiscal não encontrada" },
+        { error: "Nota fiscal nao encontrada" },
         { status: 404 }
       );
+    }
+
+    if (storeId && storeId !== existingInvoice.storeId) {
+      const targetStore = await prisma.store.findUnique({ where: { id: storeId } });
+      if (!targetStore) {
+        return NextResponse.json(
+          { error: "Estabelecimento de destino nao encontrado" },
+          { status: 404 }
+        );
+      }
     }
 
     if (items && Array.isArray(items)) {
@@ -112,6 +122,7 @@ export async function PUT(
     const invoice = await prisma.invoice.update({
       where: { id },
       data: {
+        ...(storeId && storeId !== existingInvoice.storeId ? { storeId } : {}),
         totalAmount: totalAmount || existingInvoice.totalAmount,
         totalItemsCount: items ? items.length : existingInvoice.totalItemsCount,
       },

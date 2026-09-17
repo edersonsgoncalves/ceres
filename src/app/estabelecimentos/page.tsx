@@ -1,21 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { StoreForm } from "@/components/StoreForm";
+import { StoreForm, StoreData } from "@/components/StoreForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface Store {
-  id: string;
-  name: string;
-  cnpj: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-}
+import { Button } from "@/components/ui/button";
 
 export default function EstabelecimentosPage() {
-  const [stores, setStores] = useState<Store[]>([]);
+  const [stores, setStores] = useState<StoreData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingStore, setEditingStore] = useState<StoreData | null>(null);
 
   const fetchStores = async () => {
     try {
@@ -45,7 +38,19 @@ export default function EstabelecimentosPage() {
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
-        <StoreForm onStoreCreated={fetchStores} />
+        {editingStore ? (
+          <StoreForm
+            key={editingStore.id}
+            initialData={editingStore}
+            onSave={(updated) => {
+              setStores(stores.map(s => s.id === updated.id ? updated : s));
+              setEditingStore(null);
+            }}
+            onCancel={() => setEditingStore(null)}
+          />
+        ) : (
+          <StoreForm onStoreCreated={fetchStores} />
+        )}
 
         <Card>
           <CardHeader>
@@ -68,9 +73,16 @@ export default function EstabelecimentosPage() {
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {store.city && store.state
                           ? `${store.city}, ${store.state}`
-                          : store.address || "Endereço não informado"}
+                          : store.address || "Endereco nao informado"}
                       </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingStore(store)}
+                    >
+                      Editar
+                    </Button>
                   </div>
                 ))}
               </div>

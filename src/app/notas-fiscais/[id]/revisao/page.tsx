@@ -7,6 +7,7 @@ import { InvoiceItem } from "@/types/invoice";
 
 interface Invoice {
   id: string;
+  storeId: string;
   storeName: string;
   date: string | null;
   total: number;
@@ -43,6 +44,7 @@ export default function RevisaoPage() {
   return (
     <InvoiceReview
       invoiceId={invoice.id}
+      storeId={invoice.storeId}
       storeName={invoice.storeName}
       date={invoice.date || undefined}
       total={invoice.total}

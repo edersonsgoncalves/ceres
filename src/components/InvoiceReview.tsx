@@ -7,8 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ItemEditor } from "@/components/ItemEditor";
 import { InvoiceItem } from "@/types/invoice";
 
+interface StoreOption {
+  id: string;
+  name: string;
+}
+
 interface InvoiceReviewProps {
   invoiceId: string;
+  storeId: string;
   storeName: string;
   date?: string;
   total: number;
@@ -18,7 +24,8 @@ interface InvoiceReviewProps {
 
 export function InvoiceReview({
   invoiceId,
-  storeName,
+  storeId: initialStoreId,
+  storeName: initialStoreName,
   date,
   total,
   items: initialItems,
@@ -30,6 +37,9 @@ export function InvoiceReview({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
+  const [stores, setStores] = useState<StoreOption[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState(initialStoreId);
+  const [storeChanged, setStoreChanged] = useState(false);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -37,6 +47,15 @@ export function InvoiceReview({
       .then((data) => {
         if (data.categories) {
           setCategories(data.categories.map((c: { name: string }) => c.name));
+        }
+      })
+      .catch(() => {});
+
+    fetch("/api/estabelecimentos")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.stores) {
+          setStores(data.stores.map((s: StoreOption) => ({ id: s.id, name: s.name })));
         }
       })
       .catch(() => {});
@@ -61,7 +80,11 @@ export function InvoiceReview({
       const response = await fetch(`/api/invoices/${invoiceId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, totalAmount: calculatedTotal }),
+        body: JSON.stringify({
+          items,
+          totalAmount: calculatedTotal,
+          storeId: selectedStoreId,
+        }),
       });
       if (!response.ok) { const data = await response.json(); throw new Error(data.error || "Erro ao salvar nota fiscal"); }
       router.push("/notas-fiscais");
@@ -87,6 +110,8 @@ export function InvoiceReview({
     }
   };
 
+  const currentStoreName = stores.find(s => s.id === selectedStoreId)?.name || initialStoreName;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -104,8 +129,27 @@ export function InvoiceReview({
               </span>
             )}
           </CardTitle>
-          <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
-            <span>Estabelecimento: {storeName}</span>
+          <div className="flex flex-col gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <span>Estabelecimento:</span>
+              <select
+                value={selectedStoreId}
+                onChange={(e) => {
+                  setSelectedStoreId(e.target.value);
+                  setStoreChanged(true);
+                }}
+                className="rounded border bg-white px-2 py-1 text-sm dark:bg-neutral-900"
+              >
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              {storeChanged && (
+                <span className="text-xs text-amber-600 dark:text-amber-400">
+                  (movendo de &quot;{initialStoreName}&quot; para &quot;{currentStoreName}&quot;)
+                </span>
+              )}
+            </div>
             {date && <span>Data: {date}</span>}
           </div>
         </CardHeader>
@@ -114,7 +158,7 @@ export function InvoiceReview({
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b bg-gray-50 dark:bg-neutral-950">
-                  <th className="p-2 text-left text-sm font-medium">Cód. Barras</th>
+                  <th className="p-2 text-left text-sm font-medium">Cod. Barras</th>
                   <th className="p-2 text-left text-sm font-medium">Produto</th>
                   <th className="p-2 text-left text-sm font-medium">Qtd</th>
                   <th className="p-2 text-left text-sm font-medium">Un</th>
