@@ -138,7 +138,7 @@ export function InvoiceReview({
                   setSelectedStoreId(e.target.value);
                   setStoreChanged(true);
                 }}
-                className="rounded border bg-white px-2 py-1 text-sm dark:bg-neutral-900"
+                className="rounded border bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
               >
                 {stores.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>

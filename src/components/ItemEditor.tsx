@@ -110,7 +110,7 @@ export function ItemEditor({ item, index, onUpdate, onRemove, categories = [] }:
         <select
           value={formData.category || ""}
           onChange={(e) => handleChange("category", e.target.value)}
-          className="h-8 w-full rounded border px-2 text-sm"
+          className="h-8 w-full rounded border px-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
         >
           <option value="">Selecione...</option>
           {allCategories.map((cat) => (
