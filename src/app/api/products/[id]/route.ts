@@ -151,3 +151,42 @@ export async function PUT(
     return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const { itemIds, targetProductName } = body;
+
+    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return NextResponse.json({ error: "Nenhum item selecionado" }, { status: 400 });
+    }
+    if (!targetProductName || typeof targetProductName !== "string") {
+      return NextResponse.json({ error: "Produto destino nao informado" }, { status: 400 });
+    }
+
+    const result = await prisma.invoiceItem.updateMany({
+      where: {
+        id: { in: itemIds },
+        invoice: { userId: user.id },
+        productName: id,
+      },
+      data: {
+        productName: targetProductName,
+      },
+    });
+
+    return NextResponse.json({ success: true, moved: result.count });
+  } catch (error) {
+    console.error("Erro ao mover itens:", error);
+    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 });
+  }
+}

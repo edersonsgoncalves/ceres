@@ -50,13 +50,21 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
   const [editCategory, setEditCategory] = useState("");
   const [userRole, setUserRole] = useState("user");
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [targetProduct, setTargetProduct] = useState("");
+  const [allProductNames, setAllProductNames] = useState<string[]>([]);
+  const [moving, setMoving] = useState(false);
+  const [moveError, setMoveError] = useState("");
+
   useEffect(() => {
     const productName = decodeURIComponent(id);
     Promise.all([
       fetch(`/api/products/${encodeURIComponent(productName)}`).then((r) => r.json()),
       fetch("/api/auth/me").then((r) => r.json()).catch(() => ({ role: "user" })),
+      fetch("/api/products?recent=true").then((r) => r.json()),
     ])
-      .then(([productData, userData]) => {
+      .then(([productData, userData, productsData]) => {
         if (productData.product) {
           setData(productData);
           setEditName(productData.product.name);
@@ -64,6 +72,9 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
           setEditCategory(productData.product.category || "");
         }
         if (userData.role) setUserRole(userData.role);
+        if (productsData.products) {
+          setAllProductNames(productsData.products.map((p: { productName: string }) => p.productName));
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -86,6 +97,68 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
       setSaving(false);
     }
   };
+
+  const toggleSelect = (purchaseId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(purchaseId)) next.delete(purchaseId);
+      else next.add(purchaseId);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (!data) return;
+    if (selectedIds.size === data.purchases.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(data.purchases.map((p) => p.id)));
+    }
+  };
+
+  const handleMove = async () => {
+    if (!targetProduct.trim() || !data) return;
+    setMoving(true);
+    setMoveError("");
+    try {
+      const res = await fetch(`/api/products/${encodeURIComponent(data.product.name)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemIds: Array.from(selectedIds),
+          targetProductName: targetProduct.trim(),
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Erro ao mover itens");
+
+      setData((prev) => {
+        if (!prev) return prev;
+        const movedIds = new Set(selectedIds);
+        return {
+          ...prev,
+          purchases: prev.purchases.filter((p) => !movedIds.has(p.id)),
+          stats: {
+            ...prev.stats,
+            totalPurchases: prev.stats.totalPurchases - result.moved,
+          },
+        };
+      });
+      setSelectedIds(new Set());
+      setShowMoveDialog(false);
+      setTargetProduct("");
+    } catch (err) {
+      setMoveError(err instanceof Error ? err.message : "Erro ao mover itens");
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  const filteredSuggestions = targetProduct.length > 0
+    ? allProductNames.filter((n) =>
+        n.toLowerCase().includes(targetProduct.toLowerCase()) && n !== data?.product.name
+      ).slice(0, 8)
+    : [];
 
   if (loading) return <div className="text-center text-gray-500 dark:text-gray-400 p-8">Carregando...</div>;
   if (error && !data) return <div className="text-center text-red-500 p-8">{error}</div>;
@@ -185,13 +258,65 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
 
       <Card>
         <CardHeader>
-          <CardTitle>Historico de Compras ({data.purchases.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Historico de Compras ({data.purchases.length})</CardTitle>
+            {selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                onClick={() => { setShowMoveDialog(true); setTargetProduct(""); setMoveError(""); }}
+              >
+                Mover {selectedIds.size} {selectedIds.size === 1 ? "item" : "itens"}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
+          {showMoveDialog && (
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+              <p className="text-sm font-medium mb-2">Mover {selectedIds.size} {selectedIds.size === 1 ? "item" : "itens"} para:</p>
+              <div className="relative">
+                <Input
+                  value={targetProduct}
+                  onChange={(e) => setTargetProduct(e.target.value)}
+                  placeholder="Digite o nome do produto destino..."
+                  className="pr-24"
+                />
+                {filteredSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-lg dark:bg-neutral-900 dark:border-neutral-700">
+                    {filteredSuggestions.map((name) => (
+                      <button
+                        key={name}
+                        className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-neutral-800"
+                        onClick={() => { setTargetProduct(name); }}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {moveError && <p className="text-sm text-red-500 mt-2">{moveError}</p>}
+              <div className="flex gap-2 mt-3">
+                <Button size="sm" onClick={handleMove} disabled={moving || !targetProduct.trim()}>
+                  {moving ? "Movendo..." : "Confirmar"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowMoveDialog(false)}>Cancelar</Button>
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
+                  <th className="p-2 w-8">
+                    <input
+                      type="checkbox"
+                      checked={data.purchases.length > 0 && selectedIds.size === data.purchases.length}
+                      onChange={toggleAll}
+                      className="rounded"
+                    />
+                  </th>
                   <th className="text-left p-2">Data</th>
                   <th className="text-left p-2">Estabelecimento</th>
                   <th className="text-left p-2">Nome Original</th>
@@ -202,7 +327,20 @@ export default function ProdutoRevisaoPage({ params }: { params: Promise<{ id: s
               </thead>
               <tbody>
                 {data.purchases.map((purchase) => (
-                  <tr key={purchase.id} className="border-b hover:bg-gray-50 dark:hover:bg-neutral-800">
+                  <tr
+                    key={purchase.id}
+                    className={`border-b hover:bg-gray-50 dark:hover:bg-neutral-800 ${
+                      selectedIds.has(purchase.id) ? "bg-blue-50 dark:bg-blue-950" : ""
+                    }`}
+                  >
+                    <td className="p-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(purchase.id)}
+                        onChange={() => toggleSelect(purchase.id)}
+                        className="rounded"
+                      />
+                    </td>
                     <td className="p-2">{new Date(purchase.date).toLocaleDateString("pt-BR")}</td>
                     <td className="p-2">{purchase.store.name}</td>
                     <td className="p-2 text-gray-500 dark:text-gray-400 text-xs">{purchase.name}</td>
