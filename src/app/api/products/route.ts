@@ -12,6 +12,7 @@ interface ProductGroup {
   purchaseCount: number;
   category: string | null;
   barcode: string | null;
+  eanPrefix: string | null;
 }
 
 interface EanGroup {
@@ -74,6 +75,7 @@ export async function GET(request: Request) {
         }
         if (!existing.category && item.category) existing.category = item.category;
         if (!existing.barcode && item.barcode) existing.barcode = item.barcode;
+        if (!existing.eanPrefix && (item as ItemWithEan).eanPrefix) existing.eanPrefix = (item as ItemWithEan).eanPrefix;
       } else {
         groupedProducts.set(key, {
           productName: key,
@@ -85,6 +87,7 @@ export async function GET(request: Request) {
           purchaseCount: 1,
           category: item.category,
           barcode: item.barcode,
+          eanPrefix: (item as ItemWithEan).eanPrefix || null,
         });
       }
     }
