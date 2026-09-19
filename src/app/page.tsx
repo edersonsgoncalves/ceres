@@ -29,37 +29,26 @@ interface EanGroup {
   };
 }
 
-function buildEanGroups(products: Product[]): EanGroup[] {
-  const eanMap = new Map<string, Map<string, Product>>();
+function normalizeForComparison(name: string): string[] {
+  const STOP_WORDS = new Set(["DE", "DO", "DA", "DOS", "DAS", "EM", "COM", "C/", "O", "A", "OS", "AS", "UM", "UMA", "G", "KG", "ML", "L", "UN", "PCT", "CX", "FD"]);
+  const normalized = name
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized.split(" ").filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
+}
 
-  for (const p of products) {
-    const prefix = (p as unknown as Record<string, unknown>).eanPrefix as string || `_no_${p.productName}`;
-    const existing = eanMap.get(prefix);
-    if (existing) {
-      existing.set(p.productName, p);
-    } else {
-      eanMap.set(prefix, new Map([[p.productName, p]]));
-    }
-  }
-
-  const groups: EanGroup[] = [];
-  for (const [prefix, prods] of eanMap) {
-    const productArray = Array.from(prods.values());
-    const isNoEan = prefix.startsWith("_no_");
-    const totalPurchases = productArray.reduce((s, p) => s + p.purchaseCount, 0);
-    const totalSpent = productArray.reduce((s, p) => s + p.maxPrice * p.purchaseCount, 0);
-
-    groups.push({
-      eanPrefix: isNoEan ? "" : prefix,
-      groupName: isNoEan
-        ? productArray[0]?.productName ?? ""
-        : deriveGroupName(productArray.map((p) => p.productName)),
-      products: productArray.sort((a, b) => b.purchaseCount - a.purchaseCount),
-      stats: { totalPurchases, avgPrice: totalSpent / (totalPurchases || 1), totalSpent },
-    });
-  }
-
-  return groups.sort((a, b) => b.stats.totalPurchases - a.stats.totalPurchases);
+function groupNamesSimilarity(a: string, b: string): boolean {
+  const wordsA = new Set(normalizeForComparison(a));
+  const wordsB = new Set(normalizeForComparison(b));
+  if (wordsA.size === 0 || wordsB.size === 0) return false;
+  const intersection = [...wordsA].filter((wA) =>
+    [...wordsB].some((wB) => wA === wB || wA.includes(wB) || wB.includes(wA))
+  );
+  const minSize = Math.min(wordsA.size, wordsB.size);
+  return intersection.length >= Math.ceil(minSize * 0.4) && intersection.length >= 1;
 }
 
 function deriveGroupName(names: string[]): string {
@@ -71,13 +60,93 @@ function deriveGroupName(names: string[]): string {
   let prefix = "";
   for (let i = 0; i < words.length; i++) {
     const candidate = prefix ? `${prefix} ${words[i]}` : words[i];
-    if (normalized.every((n) => n.startsWith(candidate))) {
+    if (normalized.every((n) => n.includes(candidate))) {
       prefix = candidate;
     } else {
       break;
     }
   }
   return prefix || names[0];
+}
+
+function buildEanGroups(products: Product[]): EanGroup[] {
+  const eanMap = new Map<string, Product[]>();
+
+  for (const p of products) {
+    const prefix = (p as unknown as Record<string, unknown>).eanPrefix as string || "";
+    const key = prefix || `_no_${p.productName}`;
+    const existing = eanMap.get(key);
+    if (existing) {
+      existing.push(p);
+    } else {
+      eanMap.set(key, [p]);
+    }
+  }
+
+  let initialGroups: Product[][] = [];
+  for (const prods of eanMap.values()) {
+    initialGroups.push(prods);
+  }
+
+  let merged = true;
+  while (merged) {
+    merged = false;
+    for (let i = 0; i < initialGroups.length; i++) {
+      for (let j = i + 1; j < initialGroups.length; j++) {
+        const groupA = initialGroups[i];
+        const groupB = initialGroups[j];
+        let shouldMerge = false;
+
+        const hasCommonEan = groupA.some((a) => {
+          const prefixA = (a as unknown as Record<string, unknown>).eanPrefix as string;
+          return prefixA && groupB.some((b) => (b as unknown as Record<string, unknown>).eanPrefix === prefixA);
+        });
+
+        if (hasCommonEan) {
+          shouldMerge = true;
+        } else {
+          for (const a of groupA) {
+            for (const b of groupB) {
+              if (groupNamesSimilarity(a.productName, b.productName)) {
+                shouldMerge = true;
+                break;
+              }
+            }
+            if (shouldMerge) break;
+          }
+        }
+
+        if (shouldMerge) {
+          initialGroups[i] = [...groupA, ...groupB];
+          initialGroups.splice(j, 1);
+          merged = true;
+          break;
+        }
+      }
+      if (merged) break;
+    }
+  }
+
+  const groups: EanGroup[] = [];
+  for (const prods of initialGroups) {
+    const allEanPrefixes = prods
+      .map((p) => (p as unknown as Record<string, unknown>).eanPrefix as string)
+      .filter(Boolean);
+    const hasEan = allEanPrefixes.length > 0;
+    const totalPurchases = prods.reduce((s, p) => s + p.purchaseCount, 0);
+    const totalSpent = prods.reduce((s, p) => s + p.maxPrice * p.purchaseCount, 0);
+
+    groups.push({
+      eanPrefix: hasEan ? allEanPrefixes[0] : "",
+      groupName: prods.length > 1
+        ? deriveGroupName(prods.map((p) => p.productName))
+        : prods[0].productName,
+      products: prods.sort((a, b) => b.purchaseCount - a.purchaseCount),
+      stats: { totalPurchases, avgPrice: totalSpent / (totalPurchases || 1), totalSpent },
+    });
+  }
+
+  return groups.sort((a, b) => b.stats.totalPurchases - a.stats.totalPurchases);
 }
 
 export default function HomePage() {
