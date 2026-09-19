@@ -143,6 +143,7 @@ function buildEanGroups(items: any[]): EanGroup[] {
         purchaseCount: 1,
         category: item.category,
         barcode: item.barcode,
+        eanPrefix: eanPrefix || null,
       });
     }
   }

@@ -33,7 +33,7 @@ function buildEanGroups(products: Product[]): EanGroup[] {
   const eanMap = new Map<string, Map<string, Product>>();
 
   for (const p of products) {
-    const prefix = (p as Record<string, unknown>).eanPrefix as string || `_no_${p.productName}`;
+    const prefix = (p as unknown as Record<string, unknown>).eanPrefix as string || `_no_${p.productName}`;
     const existing = eanMap.get(prefix);
     if (existing) {
       existing.set(p.productName, p);
