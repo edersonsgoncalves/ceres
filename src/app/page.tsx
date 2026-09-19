@@ -1,149 +1,125 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExpenseChart } from "@/components/ExpenseChart";
-import { MonthlyHistory } from "@/components/MonthlyHistory";
-import { StoreTicket } from "@/components/StoreTicket";
+import { useState } from "react";
+import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
-interface DashboardData {
-  summary: {
-    totalSpent: number;
-    totalInvoices: number;
-    averageTicket: number;
-    uniqueProducts: number;
-  };
-  categoryExpenses: {
-    category: string;
-    total: number;
-    count: number;
-  }[];
-  monthlyHistory: {
-    month: string;
-    total: number;
-    count: number;
-  }[];
-  storeTickets: {
-    store: string;
-    total: number;
-    count: number;
-    average: number;
-  }[];
+interface Product {
+  productName: string;
+  maxPrice: number;
+  minPrice: number;
+  lastPurchase: string | Date | null;
+  lastStore: string;
+  purchaseCount: number;
+  category: string | null;
+  barcode: string | null;
 }
 
-export default function Home() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+export default function HomePage() {
+  const [query, setQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const response = await fetch("/api/dashboard");
-        if (!response.ok) {
-          throw new Error("Erro ao carregar dashboard");
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao carregar dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, []);
-
-  if (loading) {
-    return <div className="text-center text-gray-500 dark:text-gray-400 p-8">Carregando...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center text-red-500 p-8">{error}</div>;
-  }
-
-  if (!data) {
-    return <div className="text-center text-gray-500 dark:text-gray-400 p-8">Nenhum dado disponivel</div>;
-  }
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setHasSearched(true);
+    try {
+      const params = new URLSearchParams({ search: query.trim() });
+      const res = await fetch(`/api/products?${params}`);
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch {
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400">Acompanhe seus gastos com alimentos</p>
+      <div className="text-center space-y-4 pt-12">
+        <h1 className="text-4xl font-bold">Ceres</h1>
+        <p className="text-lg text-gray-500 dark:text-gray-400">
+          Compare precos de produtos entre estabelecimentos
+        </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Total Gasto</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              R$ {data.summary.totalSpent.toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Notas Fiscais</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{data.summary.totalInvoices}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Ticket Medio</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              R$ {data.summary.averageTicket.toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Produtos Unicos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{data.summary.uniqueProducts}</p>
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-xl space-y-4">
+        <div className="flex gap-2">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            placeholder="Buscar por nome do produto ou codigo de barras..."
+            className="flex-1 text-base"
+          />
+          <Button onClick={handleSearch} disabled={loading} size="lg">
+            {loading ? "Buscando..." : "Buscar"}
+          </Button>
+        </div>
+        <div className="text-center">
+          <Link
+            href="/login"
+            className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
+          >
+            Entrar para acessar todas as funcionalidades
+          </Link>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Gastos por Categoria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ExpenseChart data={data.categoryExpenses} />
-          </CardContent>
-        </Card>
+      {loading && (
+        <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+          Buscando produtos...
+        </div>
+      )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Historico Mensal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MonthlyHistory data={data.monthlyHistory} />
-          </CardContent>
-        </Card>
-      </div>
+      {!loading && hasSearched && products.length === 0 && (
+        <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+          Nenhum produto encontrado para &quot;{query}&quot;
+        </div>
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ticket Medio por Estabelecimento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StoreTicket data={data.storeTickets} />
-        </CardContent>
-      </Card>
+      {!loading && products.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold mb-4">
+            Resultados ({products.length} {products.length === 1 ? "produto" : "produtos"})
+          </h2>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <div
+                key={product.productName}
+                className="rounded-lg border p-4"
+              >
+                <p className="font-medium truncate">{product.productName}</p>
+                {product.category && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{product.category}</p>
+                )}
+                <div className="mt-3 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Menor preco:</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">
+                      R$ {product.minPrice.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Maior preco:</span>
+                    <span className="font-medium text-red-600 dark:text-red-400">
+                      R$ {product.maxPrice.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
+                    <span>{product.purchaseCount} compras registradas</span>
+                    {product.lastStore && <span>{product.lastStore}</span>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

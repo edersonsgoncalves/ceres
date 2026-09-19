@@ -28,10 +28,6 @@ interface EanGroup {
 export async function GET(request: Request) {
   try {
     const user = await getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const recent = searchParams.get("recent") === "true";
@@ -39,7 +35,7 @@ export async function GET(request: Request) {
 
     const items = await prisma.invoiceItem.findMany({
       where: {
-        invoice: { userId: user.id },
+        ...(user ? { invoice: { userId: user.id } } : {}),
         ...(search ? { productName: { contains: search, mode: "insensitive" as const } } : {}),
       },
       include: {

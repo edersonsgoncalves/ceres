@@ -31,7 +31,7 @@ interface DashboardData {
   }[];
 }
 
-export default function DashboardPage() {
+export default function Home() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -56,15 +56,15 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return <div className="text-center text-gray-500 dark:text-gray-400">Carregando...</div>;
+    return <div className="text-center text-gray-500 dark:text-gray-400 p-8">Carregando...</div>;
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{error}</div>;
+    return <div className="text-center text-red-500 p-8">{error}</div>;
   }
 
   if (!data) {
-    return <div className="text-center text-gray-500 dark:text-gray-400">Nenhum dado disponível</div>;
+    return <div className="text-center text-gray-500 dark:text-gray-400 p-8">Nenhum dado disponivel</div>;
   }
 
   return (
@@ -97,7 +97,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Ticket Médio</CardTitle>
+            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Ticket Medio</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
@@ -108,7 +108,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Produtos Únicos</CardTitle>
+            <CardTitle className="text-sm text-gray-500 dark:text-gray-400">Produtos Unicos</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{data.summary.uniqueProducts}</p>
@@ -128,7 +128,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Histórico Mensal</CardTitle>
+            <CardTitle>Historico Mensal</CardTitle>
           </CardHeader>
           <CardContent>
             <MonthlyHistory data={data.monthlyHistory} />
@@ -138,7 +138,7 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Ticket Médio por Estabelecimento</CardTitle>
+          <CardTitle>Ticket Medio por Estabelecimento</CardTitle>
         </CardHeader>
         <CardContent>
           <StoreTicket data={data.storeTickets} />

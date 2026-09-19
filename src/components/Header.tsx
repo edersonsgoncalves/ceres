@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { href: "/", label: "Dashboard" },
+const authNavItems = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/notas-fiscais", label: "Notas Fiscais" },
   { href: "/notas-fiscais/nova", label: "Nova NF" },
   { href: "/busca", label: "Buscar Precos" },
@@ -20,16 +20,26 @@ export function Header() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => setIsLoggedIn(res.ok))
+      .catch(() => setIsLoggedIn(false));
+  }, []);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    setIsLoggedIn(false);
+    router.push("/");
   }
+
+  const navItems = isLoggedIn ? authNavItems : [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center space-x-2">
+        <Link href={isLoggedIn ? "/dashboard" : "/"} className="flex items-center space-x-2">
           <span className="text-xl font-bold text-primary">Ceres</span>
           <span className="hidden text-sm text-muted-foreground sm:inline">
             Controle de Precos
@@ -71,34 +81,41 @@ export function Header() {
           </Button>
 
           {/* Hamburger - mobile only */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Menu"
-          >
-            <span className="h-5 w-5">
-              {mobileOpen ? (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                </svg>
-              )}
-            </span>
-          </Button>
+          {isLoggedIn && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Menu"
+            >
+              <span className="h-5 w-5">
+                {mobileOpen ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                  </svg>
+                )}
+              </span>
+            </Button>
+          )}
 
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            Sair
-          </Button>
+          {isLoggedIn === false && (
+            <Link href="/login">
+              <Button variant="ghost" size="sm">Entrar</Button>
+            </Link>
+          )}
+          {isLoggedIn && (
+            <Button variant="ghost" size="sm" onClick={handleLogout}>Sair</Button>
+          )}
         </div>
       </div>
 
       {/* Mobile menu */}
-      {mobileOpen && (
+      {mobileOpen && isLoggedIn && (
         <nav className="md:hidden border-t border-border bg-background px-4 py-2 space-y-1">
           {navItems.map((item) => (
             <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
